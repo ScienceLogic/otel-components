@@ -1,3 +1,11 @@
+/* This is the interaction point with the main OTC code.
+ * Templated code calls NewFactory on every configured component/plugin.
+ * The helper functions wrapping the exporter code ensure the proper methods
+ * are invoked.
+ *
+ * Only metrics exporter defined.
+ */
+
 package awstimestreamexporter
 
 import (
@@ -35,6 +43,7 @@ func createDefaultConfig() config.Exporter {
 	}
 }
 
+// Define creation of metrics exporter which is invoked by the core collector code
 func createMetricsExporter(ctx context.Context, set component.ExporterCreateSettings, cfg config.Exporter) (component.MetricsExporter, error) {
 	c, ok := cfg.(*Config)
 	if !ok || c == nil {

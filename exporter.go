@@ -28,10 +28,14 @@ var tsIllegals *regexp.Regexp = regexp.MustCompile(`[^\w\+\.=:/ ]`)
 
 const tsReplace = "-"
 
+// Removes characters that are illegal in Timestream records and replaces
+// them with a legal character.
 func removeIllegalChars(in string) string {
 	return tsIllegals.ReplaceAllString(in, tsReplace)
 }
 
+// Converts OTEL attributes to timestream dimensions.  Accepts
+// multiple grouping of attributes as parameters.
 func convertAttrsToDimensions(attrsBundle ...*pcommon.Map) []types.Dimension {
 	dimensions := []types.Dimension{}
 	toDimension := func(name string, value pcommon.Value) bool {
@@ -53,20 +57,27 @@ func convertAttrsToDimensions(attrsBundle ...*pcommon.Map) []types.Dimension {
 	return dimensions
 }
 
+// Converts OTEL data to timestream records.
 func (e *exporter) convertMetricsToRecords(md pmetric.Metrics) []types.Record {
 	records := []types.Record{}
 	resourceMetrics := md.ResourceMetrics()
 
+	// Resources Level
 	for i := 0; i < resourceMetrics.Len(); i++ {
 		resourceMetric := resourceMetrics.At(i)
 		resourceAttrs := resourceMetric.Resource().Attributes()
 		scopeMetrics := resourceMetric.ScopeMetrics()
+
+		// Scopes Level
 		for j := 0; j < scopeMetrics.Len(); j++ {
 			scopeMetric := scopeMetrics.At(j)
 			scopeAttrs := scopeMetric.Scope().Attributes()
 			metrics := scopeMetric.Metrics()
+
+			// Metrics Level
 			for k := 0; k < metrics.Len(); k++ {
 				metric := metrics.At(k)
+				// sanitize metric name
 				measureName := removeIllegalChars(strings.Join([]string{metric.Name(), metric.Unit()}, "_"))
 
 				var dps pmetric.NumberDataPointSlice
@@ -81,11 +92,13 @@ func (e *exporter) convertMetricsToRecords(md pmetric.Metrics) []types.Record {
 					continue
 				}
 
+				// Datapoints Level
 				for l := 0; l < dps.Len(); l++ {
 					dp := dps.At(l)
 					var measureValue string
 					var measureValueType types.MeasureValueType
 
+					// Convert measurements values to string and set proper numeric types
 					if dp.ValueType() == pmetric.NumberDataPointValueTypeInt {
 						measureValue = strconv.FormatInt(dp.IntValue(), 10)
 						measureValueType = types.MeasureValueTypeBigint
@@ -101,6 +114,8 @@ func (e *exporter) convertMetricsToRecords(md pmetric.Metrics) []types.Record {
 					measureTime := strconv.FormatUint(uint64(dp.Timestamp()), 10)
 					attributes := dp.Attributes()
 
+					// Attributes from resource, scope, and this datapoints are put into the
+					// dimensions for this timestream record.
 					record := types.Record{
 						MeasureName:      &measureName,
 						MeasureValue:     &measureValue,
@@ -120,6 +135,7 @@ func (e *exporter) convertMetricsToRecords(md pmetric.Metrics) []types.Record {
 	return records
 }
 
+// main entrypoint for metrics exporting
 func (e *exporter) pushMetrics(ctx context.Context, md pmetric.Metrics) error {
 	e.logger.Info("Starting push metrics...")
 	records := e.convertMetricsToRecords(md)
@@ -165,6 +181,7 @@ func createExporter(ctx context.Context, conf *Config, log *zap.Logger, s sessio
 	}
 }
 
+// create Timestream writer session with proper config
 func newWriteSession(ctx context.Context, region string, log *zap.Logger) *timestreamwrite.Client {
 	/*
 		tr := &http.Transport{
