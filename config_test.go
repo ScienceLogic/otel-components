@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.opentelemetry.io/collector/config"
+	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/confmap"
 	"go.opentelemetry.io/collector/confmap/confmaptest"
 	"go.opentelemetry.io/collector/exporter/exporterhelper"
@@ -15,8 +15,8 @@ import (
 
 func TestUnmarshalDefaultConfig(t *testing.T) {
 	factory := NewFactory()
-	cfg := factory.CreateDefaultConfig()
-	assert.NoError(t, config.UnmarshalExporter(confmap.New(), cfg))
+	cfg := factory.CreateDefaultConfig().(*Config)
+	assert.NoError(t, component.UnmarshalConfig(confmap.New(), cfg))
 	// Default/Empty config is invalid.
 	assert.Error(t, cfg.Validate())
 }
@@ -26,10 +26,9 @@ func TestUnmarshalFileConfig(t *testing.T) {
 	require.NoError(t, err)
 	factory := NewFactory()
 	cfg := factory.CreateDefaultConfig()
-	assert.NoError(t, config.UnmarshalExporter(cm, cfg))
+	assert.NoError(t, component.UnmarshalConfig(cm, cfg))
 	assert.Equal(t,
 		&Config{
-			ExporterSettings: config.NewExporterSettings(config.NewComponentID(typeStr)),
 			QueueSettings: exporterhelper.QueueSettings{
 				Enabled:      true,
 				NumConsumers: 2,

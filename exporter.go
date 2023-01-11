@@ -8,16 +8,12 @@ import (
 	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/pmetric"
 	"go.uber.org/zap"
-	//"golang.org/x/net/http2"
-	//"net"
-	//"net/http"
 	"regexp"
 	"strconv"
 	"strings"
-	//"time"
 )
 
-type exporter struct {
+type timestreamExporter struct {
 	writeSession *timestreamwrite.Client
 	logger       *zap.Logger
 	database     string
@@ -58,7 +54,7 @@ func convertAttrsToDimensions(attrsBundle ...*pcommon.Map) []types.Dimension {
 }
 
 // Converts OTEL data to timestream records.
-func (e *exporter) convertMetricsToRecords(md pmetric.Metrics) []types.Record {
+func (e *timestreamExporter) convertMetricsToRecords(md pmetric.Metrics) []types.Record {
 	records := []types.Record{}
 	resourceMetrics := md.ResourceMetrics()
 
@@ -136,7 +132,7 @@ func (e *exporter) convertMetricsToRecords(md pmetric.Metrics) []types.Record {
 }
 
 // main entrypoint for metrics exporting
-func (e *exporter) pushMetrics(ctx context.Context, md pmetric.Metrics) error {
+func (e *timestreamExporter) pushMetrics(ctx context.Context, md pmetric.Metrics) error {
 	e.logger.Info("Starting push metrics...")
 	records := e.convertMetricsToRecords(md)
 	// TODO: Possibly batch these records when I require out how the backend
@@ -172,8 +168,8 @@ func (e *exporter) pushMetrics(ctx context.Context, md pmetric.Metrics) error {
 
 type sessionCreator func(ctx context.Context, region string, log *zap.Logger) *timestreamwrite.Client
 
-func createExporter(ctx context.Context, conf *Config, log *zap.Logger, s sessionCreator) *exporter {
-	return &exporter{
+func createExporter(ctx context.Context, conf *Config, log *zap.Logger, s sessionCreator) *timestreamExporter {
+	return &timestreamExporter{
 		writeSession: s(ctx, conf.Region, log),
 		database:     conf.Database,
 		table:        conf.Table,

@@ -13,28 +13,27 @@ import (
 	"errors"
 
 	"go.opentelemetry.io/collector/component"
-	"go.opentelemetry.io/collector/config"
+	"go.opentelemetry.io/collector/exporter"
 	"go.opentelemetry.io/collector/exporter/exporterhelper"
 )
 
 const (
 	typeStr            = "awstimestream"
-	stability          = component.StabilityLevelInDevelopment
+	stability          = component.StabilityLevelDevelopment
 	maxRecordsPerBatch = 100
 )
 
 // NewFactory creates a factory for AWS Timestream exporter.
-func NewFactory() component.ExporterFactory {
-	return component.NewExporterFactory(
+func NewFactory() exporter.Factory {
+	return exporter.NewFactory(
 		typeStr,
 		createDefaultConfig,
-		component.WithMetricsExporter(createMetricsExporter, stability),
+		exporter.WithMetrics(createMetricsExporter, stability),
 	)
 }
 
-func createDefaultConfig() config.Exporter {
+func createDefaultConfig() component.Config {
 	return &Config{
-		ExporterSettings:   config.NewExporterSettings(config.NewComponentID(typeStr)),
 		TimeoutSettings:    exporterhelper.NewDefaultTimeoutSettings(),
 		RetrySettings:      exporterhelper.NewDefaultRetrySettings(),
 		QueueSettings:      exporterhelper.NewDefaultQueueSettings(),
@@ -44,7 +43,11 @@ func createDefaultConfig() config.Exporter {
 }
 
 // Define creation of metrics exporter which is invoked by the core collector code
-func createMetricsExporter(ctx context.Context, set component.ExporterCreateSettings, cfg config.Exporter) (component.MetricsExporter, error) {
+func createMetricsExporter(
+	ctx context.Context,
+	set exporter.CreateSettings,
+	cfg component.Config,
+) (exporter.Metrics, error) {
 	c, ok := cfg.(*Config)
 	if !ok || c == nil {
 		return nil, errors.New("incorrect config provided")
