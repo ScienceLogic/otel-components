@@ -28,8 +28,8 @@ processors:
 exporters:
   slzebrium:
     verbosity: detailed
-    endpoint: https://echo.qa.zebrium.com
-    ze_token: 01FCC250196BE0BAEB5DCC7C12EC80AFA5DBA9ED
+    endpoint: https://cloud.zebrium.com
+    ze_token: 0000000000000000000000000000000000000000
 
 service:
   pipelines:
