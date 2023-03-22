@@ -30,7 +30,6 @@ import (
 type loggingExporter struct {
 	cfg            *Config
 	log            *zap.Logger
-	logsMarshaler  plog.Marshaler
 	client         *http.Client
 	streamTokenMap map[string]string
 }
@@ -38,16 +37,33 @@ type loggingExporter struct {
 func (s *loggingExporter) pushLogs(_ context.Context, ld plog.Logs) error {
 	s.log.Info("SLZebriumExporter", zap.Int("#logs", ld.LogRecordCount()))
 
-	if s.cfg.Verbosity != configtelemetry.LevelDetailed {
-		return nil
+	rls := ld.ResourceLogs()
+	for i := 0; i < rls.Len(); i++ {
+		rl := rls.At(i)
+		request, err := s.getStreamTokenRequest(rl)
+		if err != nil {
+			s.log.Error("Failed to get metadata", zap.String("err", err.Error()))
+			return err
+		}
+
+		buffer, err := s.marshalLogs(rl)
+		if err != nil {
+			s.log.Error("Failed to marshal log messages", zap.String("err", err.Error()))
+			return err
+		}
+
+		if s.cfg.Verbosity == configtelemetry.LevelDetailed {
+			s.log.Info(request)
+			s.log.Info(string(buffer))
+		}
+
+		err = s.sendLogs(request, buffer)
+		if err != nil {
+			s.log.Error("Failed to send logs", zap.String("err", err.Error()))
+			return err
+		}
 	}
 
-	buf, err := s.logsMarshaler.MarshalLogs(ld)
-	if err != nil {
-		s.log.Info("SLZebriumExporter failed to marshal", zap.String("err", err.Error()))
-		return err
-	}
-	s.log.Info(string(buf))
 	return nil
 }
 
@@ -64,7 +80,6 @@ func newLoggingExporter(logger *zap.Logger, cfg *Config) *loggingExporter {
 	return &loggingExporter{
 		cfg:            cfg,
 		log:            logger,
-		logsMarshaler:  newZeLogsMarshaler(),
 		streamTokenMap: make(map[string]string),
 	}
 }
