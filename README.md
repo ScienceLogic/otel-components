@@ -44,7 +44,8 @@ Profiles have an additional configuration for the message `format`
 with the following values:
 
 - `event`: Prefix the message with timestamp and severity
-- `message`: Forward the message body as is, used when message has a structure
+- `message`: Forward the message body as is
+- `container`: Special handling for logs from docker containers
 
 The attributes assigned by this processor for consumption by
 ScienceLogic commponents include the following resource attributes:
@@ -92,7 +93,7 @@ processors:
       - rattr:os.type
       - attr:log.file.path:zid_path
       message: body
-      format: message
+      format: container
 ```
 
 [beta]: https://github.com/open-telemetry/opentelemetry-collector#beta

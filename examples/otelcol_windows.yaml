@@ -23,7 +23,7 @@ processors:
       - rattr:os.type
       - attr:log.file.path:zid_path
       message: body
-      format: message
+      format: container
 
 exporters:
   logging:
