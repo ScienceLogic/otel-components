@@ -17,64 +17,55 @@ package slzebriumexporter // import "github.com/open-telemetry/opentelemetry-col
 import (
 	"context"
 	"errors"
+	"net/http"
 	"os"
 
 	"go.uber.org/zap"
 
-	"github.com/open-telemetry/opentelemetry-collector-contrib/exporter/slzebriumexporter/internal/otlptext"
-	"github.com/open-telemetry/opentelemetry-collector-contrib/exporter/slzebriumexporter/internal/otlpzapi"
+	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/config/configtelemetry"
 	"go.opentelemetry.io/collector/pdata/plog"
-	"go.opentelemetry.io/collector/pdata/pmetric"
-	"go.opentelemetry.io/collector/pdata/ptrace"
 )
 
 type loggingExporter struct {
-	config           *Config
-	logger           *zap.Logger
-	logsMarshaler    plog.Marshaler
-	metricsMarshaler pmetric.Marshaler
-	tracesMarshaler  ptrace.Marshaler
+	cfg            *Config
+	log            *zap.Logger
+	logsMarshaler  plog.Marshaler
+	client         *http.Client
+	streamTokenMap map[string]string
 }
 
 func (s *loggingExporter) pushLogs(_ context.Context, ld plog.Logs) error {
+	s.log.Info("SLZebriumExporter", zap.Int("#logs", ld.LogRecordCount()))
 
-	var err error
-
-	s.logger.Info("ZebriumExporter",
-		zap.Int("#logs", ld.LogRecordCount()))
-	err = otlpzapi.SendWorkToZapi(&otlpzapi.ZapiLogInfo{
-		Config: &otlpzapi.ZapiLogConfig{
-			ZeLBN:   "depricated",
-			ZeURL:   s.config.Endpoint,
-			ZeToken: s.config.ZeToken,
-		},
-		Logger: s.logger,
-		LD:     &ld,
-	})
-	if err != nil {
-		return err
-	}
-
-	if s.config.Verbosity != configtelemetry.LevelDetailed {
+	if s.cfg.Verbosity != configtelemetry.LevelDetailed {
 		return nil
 	}
 
 	buf, err := s.logsMarshaler.MarshalLogs(ld)
 	if err != nil {
+		s.log.Info("SLZebriumExporter failed to marshal", zap.String("err", err.Error()))
 		return err
 	}
-	s.logger.Info(string(buf))
+	s.log.Info(string(buf))
+	return nil
+}
+
+func (s *loggingExporter) start(ctx context.Context, host component.Host) error {
+	client, err := s.cfg.HTTPClientSettings.ToClient(host, component.TelemetrySettings{Logger: s.log})
+	if err != nil {
+		return err
+	}
+	s.client = client
 	return nil
 }
 
 func newLoggingExporter(logger *zap.Logger, cfg *Config) *loggingExporter {
 	return &loggingExporter{
-		config:           cfg,
-		logger:           logger,
-		logsMarshaler:    otlptext.NewTextLogsMarshaler(),
-		metricsMarshaler: otlptext.NewTextMetricsMarshaler(),
-		tracesMarshaler:  otlptext.NewTextTracesMarshaler(),
+		cfg:            cfg,
+		log:            logger,
+		logsMarshaler:  newZeLogsMarshaler(),
+		streamTokenMap: make(map[string]string),
 	}
 }
 

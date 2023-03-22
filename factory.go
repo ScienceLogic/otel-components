@@ -71,6 +71,7 @@ func createZebriumExporter(ctx context.Context, set exporter.CreateSettings, con
 		exporterhelper.WithTimeout(exporterhelper.TimeoutSettings{Timeout: 0}),
 		exporterhelper.WithRetry(cfg.RetrySettings),
 		exporterhelper.WithQueue(cfg.QueueSettings),
+		exporterhelper.WithStart(s.start),
 		exporterhelper.WithShutdown(loggerSync(exporterLogger)),
 	)
 }
