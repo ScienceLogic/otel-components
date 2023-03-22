@@ -21,7 +21,6 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/open-telemetry/opentelemetry-collector-contrib/exporter/slzebriumexporter/internal/absampler"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/exporter/slzebriumexporter/internal/otlptext"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/exporter/slzebriumexporter/internal/otlpzapi"
 	"go.opentelemetry.io/collector/config/configtelemetry"
@@ -42,26 +41,17 @@ func (s *loggingExporter) pushLogs(_ context.Context, ld plog.Logs) error {
 
 	var err error
 
-	if s.config.IsAfterburner {
-		s.logger.Info("AfterburnerExporter",
-			zap.Int("#logs", ld.LogRecordCount()))
-		err = absampler.SendWorkToAbSampler(&absampler.AbSamplerInfo{
-			Config: &absampler.AbSamplerConfig{ZeLBN: s.config.ZeLBN,
-				ZeURL:              s.config.ZeUrl,
-				ZeToken:            s.config.ZeToken,
-				SamplingInitial:    s.config.SamplingInitial,
-				SamplingThereafter: s.config.SamplingThereafter},
-			Logger: s.logger,
-			LD:     &ld})
-	} else {
-		s.logger.Info("ZebriumExporter",
-			zap.Int("#logs", ld.LogRecordCount()))
-		err = otlpzapi.SendWorkToZapi(&otlpzapi.ZapiLogInfo{
-			Config: &otlpzapi.ZapiLogConfig{ZeLBN: s.config.ZeLBN,
-				ZeURL: s.config.ZeUrl, ZeToken: s.config.ZeToken},
-			Logger: s.logger,
-			LD:     &ld})
-	}
+	s.logger.Info("ZebriumExporter",
+		zap.Int("#logs", ld.LogRecordCount()))
+	err = otlpzapi.SendWorkToZapi(&otlpzapi.ZapiLogInfo{
+		Config: &otlpzapi.ZapiLogConfig{
+			ZeLBN:   "depricated",
+			ZeURL:   s.config.Endpoint,
+			ZeToken: s.config.ZeToken,
+		},
+		Logger: s.logger,
+		LD:     &ld,
+	})
 	if err != nil {
 		return err
 	}

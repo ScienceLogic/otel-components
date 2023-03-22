@@ -16,13 +16,14 @@ package slzebriumexporter // import "github.com/open-telemetry/opentelemetry-col
 
 import (
 	"context"
-	"sync"
 	"time"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 
 	"go.opentelemetry.io/collector/component"
+	"go.opentelemetry.io/collector/config/confighttp"
+	"go.opentelemetry.io/collector/config/configopaque"
 	"go.opentelemetry.io/collector/config/configtelemetry"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/exporter"
@@ -31,14 +32,9 @@ import (
 
 const (
 	// The value of "type" key in configuration.
-	typeStr                   = "slzebrium"
-	defaultSamplingInitial    = 10 // First 10 records logged
-	defaultSamplingThereafter = 1  // Every record therafter
-	defaultZeUrl              = "https://cloud.slzebrium.com"
-	defaultZeLBN              = "syslog"
+	typeStr      = "slzebrium"
+	defaultZeUrl = "https://cloud.zebrium.com"
 )
-
-var onceWarnLogLevel sync.Once
 
 // NewFactory creates a factory for Logging exporter
 func NewFactory() exporter.Factory {
@@ -51,12 +47,16 @@ func NewFactory() exporter.Factory {
 
 func createDefaultConfig() component.Config {
 	return &Config{
-		LogLevel:           zapcore.InfoLevel,
-		Verbosity:          configtelemetry.LevelNormal,
-		SamplingInitial:    defaultSamplingInitial,
-		SamplingThereafter: defaultSamplingThereafter,
-		ZeUrl:              defaultZeUrl,
-		ZeLBN:              defaultZeLBN,
+		HTTPClientSettings: confighttp.HTTPClientSettings{
+			Endpoint: defaultZeUrl,
+			Timeout:  30 * time.Second,
+			Headers:  map[string]configopaque.String{},
+			// We almost read 0 bytes, so no need to tune ReadBufferSize.
+			WriteBufferSize: 512 * 1024,
+		},
+		RetrySettings: exporterhelper.NewDefaultRetrySettings(),
+		QueueSettings: exporterhelper.NewDefaultQueueSettings(),
+		Verbosity:     configtelemetry.LevelNormal,
 	}
 }
 
@@ -69,28 +69,19 @@ func createZebriumExporter(ctx context.Context, set exporter.CreateSettings, con
 		exporterhelper.WithCapabilities(consumer.Capabilities{MutatesData: false}),
 		// Disable Timeout/RetryOnFailure and SendingQueue
 		exporterhelper.WithTimeout(exporterhelper.TimeoutSettings{Timeout: 0}),
-		exporterhelper.WithRetry(exporterhelper.RetrySettings{Enabled: false}),
-		exporterhelper.WithQueue(exporterhelper.QueueSettings{Enabled: false}),
+		exporterhelper.WithRetry(cfg.RetrySettings),
+		exporterhelper.WithQueue(cfg.QueueSettings),
 		exporterhelper.WithShutdown(loggerSync(exporterLogger)),
 	)
 }
 
 func createLogger(cfg *Config, logger *zap.Logger) *zap.Logger {
-	if cfg.warnLogLevel {
-		onceWarnLogLevel.Do(func() {
-			logger.Warn(
-				"'loglevel' option is deprecated in favor of 'verbosity'. Set 'verbosity' to equivalent value to preserve behavior.",
-				zap.Stringer("loglevel", cfg.LogLevel),
-				zap.Stringer("equivalent verbosity level", cfg.Verbosity),
-			)
-		})
-	}
 
 	core := zapcore.NewSamplerWithOptions(
 		logger.Core(),
 		1*time.Second,
-		cfg.SamplingInitial,
-		cfg.SamplingThereafter,
+		2,
+		500,
 	)
 
 	return zap.New(core)

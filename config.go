@@ -15,14 +15,18 @@
 package slzebriumexporter // import "github.com/open-telemetry/opentelemetry-collector-contrib/exporter/slzebriumexporter"
 
 import (
+	"encoding/hex"
+	"errors"
 	"fmt"
-	"log"
+	"net/url"
 
 	"go.uber.org/zap/zapcore"
 
 	"go.opentelemetry.io/collector/component"
+	"go.opentelemetry.io/collector/config/confighttp"
 	"go.opentelemetry.io/collector/config/configtelemetry"
 	"go.opentelemetry.io/collector/confmap"
+	"go.opentelemetry.io/collector/exporter/exporterhelper"
 )
 
 var (
@@ -37,33 +41,15 @@ var (
 
 // Config defines configuration for slzebrium exporter.
 type Config struct {
-	// LogLevel defines log level of the slzebrium exporter; options are debug, info, warn, error.
-	// Deprecated: Use `Verbosity` instead.
-	LogLevel zapcore.Level `mapstructure:"loglevel"`
+	confighttp.HTTPClientSettings `mapstructure:",squash"` // squash ensures fields are correctly decoded in embedded struct.
+	exporterhelper.QueueSettings  `mapstructure:"sending_queue"`
+	exporterhelper.RetrySettings  `mapstructure:"retry_on_failure"`
 
-	// Verbosity defines the logging exporter verbosity.
+	// Verbosity defines the zebrium exporter verbosity.
 	Verbosity configtelemetry.Level `mapstructure:"verbosity"`
-
-	// warnLogLevel is set on unmarshaling to warn users about `loglevel` usage.
-	warnLogLevel bool
-
-	// ZeUrl Zebrium ZAPI endpoint URL
-	ZeUrl string `mapstructure:"ze_url"`
 
 	// ZeUrl Zebrium ZAPI authentication token
 	ZeToken string `mapstructure:"ze_token"`
-
-	// ZeLBN Zebrium logbasename
-	ZeLBN string `mapstructure:"ze_logbasename"`
-
-	// Afterburner enable
-	IsAfterburner bool `mapstructure:"enable_afterburner"`
-
-	// SamplingInitial defines how many samples are initially logged.
-	SamplingInitial int `mapstructure:"sampling_initial"`
-
-	// SamplingThereafter defines the sampling rate after the initial samples are logged, i.e. every i'th record is logged
-	SamplingThereafter int `mapstructure:"sampling_thereafter"`
 }
 
 var _ component.Config = (*Config)(nil)
@@ -85,54 +71,34 @@ func mapLevel(level zapcore.Level) (configtelemetry.Level, error) {
 }
 
 func (cfg *Config) Unmarshal(conf *confmap.Conf) error {
-	if conf.IsSet("loglevel") && conf.IsSet("verbosity") {
-		return fmt.Errorf("'loglevel' and 'verbosity' are incompatible. Use only 'verbosity' instead")
-	}
-
 	if err := conf.Unmarshal(cfg, confmap.WithErrorUnused()); err != nil {
 		return err
 	}
-
-	if conf.IsSet("loglevel") {
-		verbosity, err := mapLevel(cfg.LogLevel)
-		if err != nil {
-			return fmt.Errorf("failed to map 'loglevel': %w", err)
-		}
-
-		// 'verbosity' is unset but 'loglevel' is set.
-		// Override default verbosity.
-		cfg.Verbosity = verbosity
-		cfg.warnLogLevel = true
-	}
-
 	return nil
 }
 
-// Validate AbSampler configuration
-func (cfg *Config) validateAbSampler() bool {
-	if !cfg.IsAfterburner {
-		return true
+func validateZeToken(token string) error {
+	if len(token) != 40 {
+		return errors.New("must be 40 hex characters")
 	}
-	// Is Afterburner
-	if cfg.SamplingInitial < 0 {
-		log.Printf("sample_initial must be >=0")
-		return false
-	}
-	if cfg.SamplingThereafter < 1 {
-		log.Printf("sample_therafter is invalid, >=1")
-		return false
-	}
-	return true
+	dst := make([]byte, hex.DecodedLen(len(token)))
+	_, err := hex.Decode(dst, []byte(token))
+	return err
 }
 
 // Validate checks if the exporter configuration is valid
 func (cfg *Config) Validate() error {
+	if err := cfg.QueueSettings.Validate(); err != nil {
+		return fmt.Errorf("queue settings has invalid configuration: %w", err)
+	}
+	if _, err := url.Parse(cfg.Endpoint); cfg.Endpoint == "" || err != nil {
+		return fmt.Errorf("\"endpoint\" must be a valid URL")
+	}
 	if _, ok := supportedLevels[cfg.Verbosity]; !ok {
 		return fmt.Errorf("verbosity level %q is not supported", cfg.Verbosity)
 	}
-	// TODO: Validate zeToken, zeURL
-	if !cfg.validateAbSampler() {
-		return fmt.Errorf("Afterburner Sampler configuration is invalid")
+	if err := validateZeToken(cfg.ZeToken); err != nil {
+		return fmt.Errorf("ze_token invalid: %s", err.Error())
 	}
 	return nil
 }
