@@ -165,12 +165,10 @@ func evalElem(elem string, req *StreamTokenReq, rattr, attr pcommon.Map, body pc
 			}
 		}
 	}
-	if id != "-" {
-		if isId {
-			req.Ids[id] = ret
-		} else {
-			req.Cfgs[id] = ret
-		}
+	if isId {
+		req.Ids[id] = ret
+	} else {
+		req.Cfgs[id] = ret
 	}
 	if setLogType {
 		req.Logbasename = ret

@@ -34,10 +34,6 @@ The syntax for associating metadata looks like:
 
 ```<destination>: <source>:<list of keys to try>:<optional replacement key>:<options>```
 
-A special value `-` for the replacement key will omit the attribute
-in the downstream ScienceLogic metadata attributes.  This can be used,
-for example, to batch together logs of the same type from different hosts.
-
 The following options are supported:
 
 - `rmprefix`: To remove a prefix if matched, e.g. `rmprefix=Microsoft-Windows-`
