@@ -74,8 +74,8 @@ var cfgOptionMap map[string]struct{} = map[string]struct{}{
 
 type ConfigProfile struct {
 	ServiceGroup string   `mapstructure:"service_group"`
-	Source       string   `mapstructure:"source"`
-	LogType      string   `mapstructure:"log_type"`
+	Host         string   `mapstructure:"host"`
+	Logbasename  string   `mapstructure:"logbasename"`
 	Labels       []string `mapstructure:"labels"`
 	Message      string   `mapstructure:"message"`
 	Format       string   `mapstructure:"format"`
@@ -121,10 +121,10 @@ func (cfg *Config) Validate() error {
 		if err := validateProfileElem(idx, "service_group", profile.ServiceGroup, cfgSourceMap); err != nil {
 			return err
 		}
-		if err := validateProfileElem(idx, "source", profile.Source, cfgSourceMap); err != nil {
+		if err := validateProfileElem(idx, "host", profile.Host, cfgSourceMap); err != nil {
 			return err
 		}
-		if err := validateProfileElem(idx, "log_type", profile.LogType, cfgSourceMap); err != nil {
+		if err := validateProfileElem(idx, "logbasename", profile.Logbasename, cfgSourceMap); err != nil {
 			return err
 		}
 		if err := validateProfileElem(idx, "message", profile.Message, cfgSourceMap); err != nil {

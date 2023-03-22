@@ -16,6 +16,7 @@ package sllogformatprocessor // import "github.com/open-telemetry/opentelemetry-
 
 import (
 	"errors"
+	"strconv"
 	"strings"
 	"time"
 	"unicode"
@@ -192,7 +193,7 @@ func evalMessage(elem string, body pcommon.Value) string {
 	return ret
 }
 
-func (c *Config) MatchProfile(log *zap.Logger, rl plog.ResourceLogs, ils plog.ScopeLogs, lr plog.LogRecord) (*StreamTokenReq, string, error) {
+func (c *Config) MatchProfile(log *zap.Logger, rl plog.ResourceLogs, ils plog.ScopeLogs, lr plog.LogRecord) (string, string, *StreamTokenReq, string, error) {
 
 	for _, profile := range c.Profiles {
 		req := StreamTokenReq{
@@ -205,12 +206,12 @@ func (c *Config) MatchProfile(log *zap.Logger, rl plog.ResourceLogs, ils plog.Sc
 		if gen.ServiceGroup == "" {
 			continue
 		}
-		gen.Source = evalElem(profile.Source, &req, rl.Resource().Attributes(), lr.Attributes(), lr.Body(), true, false)
-		if gen.Source == "" {
+		gen.Host = evalElem(profile.Host, &req, rl.Resource().Attributes(), lr.Attributes(), lr.Body(), true, false)
+		if gen.Host == "" {
 			continue
 		}
-		gen.LogType = evalElem(profile.LogType, &req, rl.Resource().Attributes(), lr.Attributes(), lr.Body(), true, true)
-		if gen.LogType == "" {
+		gen.Logbasename = evalElem(profile.Logbasename, &req, rl.Resource().Attributes(), lr.Attributes(), lr.Body(), true, true)
+		if gen.Logbasename == "" {
 			continue
 		}
 		for _, label := range profile.Labels {
@@ -224,15 +225,16 @@ func (c *Config) MatchProfile(log *zap.Logger, rl plog.ResourceLogs, ils plog.Sc
 		switch profile.Format {
 		case CfgFormatEvent:
 			var timestamp time.Time
+			const RFC3339Micro = "2006-01-02T15:04:05.999999Z07:00"
 			if lr.Timestamp() != 0 {
 				timestamp = time.Unix(0, int64(lr.Timestamp()))
 			} else {
 				timestamp = time.Unix(0, int64(lr.ObservedTimestamp()))
 			}
 			sevText, _ := severityMap[lr.SeverityNumber()]
-			gen.Message = timestamp.UTC().Format(time.RFC3339Nano) + " " + sevText + " " + gen.Message
+			gen.Message = "ze_tm=" + strconv.FormatInt(timestamp.UnixMilli(), 10) + ",msg=" + timestamp.UTC().Format(RFC3339Micro) + " " + sevText + " " + gen.Message
 		}
-		return &req, gen.Message, nil
+		return gen.ServiceGroup, gen.Host, &req, gen.Message, nil
 	}
-	return nil, "", errors.New("No matching profile for resource")
+	return "", "", nil, "", errors.New("No matching profile for log record")
 }

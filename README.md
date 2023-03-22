@@ -18,8 +18,8 @@ that match against incoming logs in the order configured.  A match
 requires the following attributes:
 
 - `service_group`: Domain of anomaly correlation
-- `source`: Source within the domain, typically a host name
-- `log_type`: Application generating the logs, e.g. Postgres
+- `host`: Host or computer name
+- `logbasename`: Application generating the logs in lowercase, e.g. postgres
 
 Additional optional attributes can be configured as `labels`.
 These attributes can be derived from the following sources in the
@@ -44,6 +44,12 @@ The following options are supported:
 - `alphanum`: Filter out all characters that are not letters or numbers
 - `lc`: Transform to lowercase
 
+Profiles have an additional configuration for the message `format`
+with the following values:
+
+- `event`: Prefix the message with timestamp and severity
+- `message`: Forward the message body as is, used when message has a structure
+
 The attributes assigned by this processor for consumption by
 ScienceLogic commponents include the following resource attributes:
 
@@ -55,6 +61,7 @@ And the following log record attribute:
 - `sl_msg`: The log message body formatted for consumption by ScienceLogic
 
 The following configuration options can be modified:
+
 - `send_batch_size` (default = 8192): Number of spans, metric data points, or log
 records after which a batch will be sent regardless of the timeout.
 - `timeout` (default = 200ms): Time duration after which a batch will be sent
@@ -73,16 +80,16 @@ processors:
     timeout: 10s
     profiles:
     - service_group: lit:default:ze_deployment_name # windows event log
-      source: body:computer:zid_host
-      log_type: body:provider.name:zid_log:rmprefix=Microsoft-Windows-:alphanum:lc
+      host: body:computer:host
+      logbasename: body:provider.name:logbasename:rmprefix=Microsoft-Windows-:alphanum:lc
       labels:
       - body:channel:win_channel
       - body:keywords:win_keywords
       message: body:message|event_data|keywords
       format: event
     - service_group: lit:default:ze_deployment_name # docker logs
-      source: rattr:host.name:zid_host
-      log_type: attr:container_id:zid_log
+      host: rattr:host.name:host
+      logbasename: attr:container_id:logbasename
       labels:
       - rattr:os.type
       - attr:log.file.path:zid_path

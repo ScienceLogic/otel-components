@@ -81,7 +81,7 @@ func (bl *batchLogs) addToBatch(ld plog.Logs) {
 	ld.ResourceLogs().RemoveIf(func(rl plog.ResourceLogs) bool {
 		rl.ScopeLogs().RemoveIf(func(ils plog.ScopeLogs) bool {
 			ils.LogRecords().RemoveIf(func(lr plog.LogRecord) bool {
-				req, msg, err := bl.cfg.MatchProfile(bl.log, rl, ils, lr)
+				srv_grp, host, req, msg, err := bl.cfg.MatchProfile(bl.log, rl, ils, lr)
 				if err != nil {
 					bl.log.Error("Field to match profile",
 						zap.String("err", err.Error()))
@@ -97,7 +97,9 @@ func (bl *batchLogs) addToBatch(ld plog.Logs) {
 				dest, ok := bl.logData[key]
 				if !ok {
 					dest = plog.NewResourceLogs()
-					dest.Resource().Attributes().PutStr("sl_logtype", req.Logbasename)
+					dest.Resource().Attributes().PutStr("sl_service_group", srv_grp)
+					dest.Resource().Attributes().PutStr("sl_host", host)
+					dest.Resource().Attributes().PutStr("sl_logbasename", req.Logbasename)
 					dest.Resource().Attributes().PutStr("sl_metadata", key)
 					bl.logData[key] = dest
 				}
