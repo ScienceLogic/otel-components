@@ -43,15 +43,16 @@ type Config struct {
 var _ component.Config = (*Config)(nil)
 
 const (
-	CfgSourceRattr    string = "rattr"
-	CfgSourceAttr     string = "attr"
-	CfgSourceBody     string = "body"
-	CfgSourceLit      string = "lit"
-	CfgFormatMessage  string = "message"
-	CfgFormatEvent    string = "event"
-	CfgOptionRmprefix string = "rmprefix"
-	CfgOptionAlphaNum string = "alphanum"
-	CfgOptionLc       string = "lc"
+	CfgSourceRattr     string = "rattr"
+	CfgSourceAttr      string = "attr"
+	CfgSourceBody      string = "body"
+	CfgSourceLit       string = "lit"
+	CfgFormatMessage   string = "message"
+	CfgFormatContainer string = "container"
+	CfgFormatEvent     string = "event"
+	CfgOptionRmprefix  string = "rmprefix"
+	CfgOptionAlphaNum  string = "alphanum"
+	CfgOptionLc        string = "lc"
 )
 
 var cfgSourceMap map[string]struct{} = map[string]struct{}{
@@ -62,8 +63,9 @@ var cfgSourceMap map[string]struct{} = map[string]struct{}{
 }
 
 var cfgFormatMap map[string]struct{} = map[string]struct{}{
-	CfgFormatMessage: {},
-	CfgFormatEvent:   {},
+	CfgFormatMessage:   {},
+	CfgFormatContainer: {},
+	CfgFormatEvent:     {},
 }
 
 var cfgOptionMap map[string]struct{} = map[string]struct{}{

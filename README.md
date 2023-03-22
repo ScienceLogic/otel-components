@@ -19,7 +19,7 @@ requires the following attributes:
 
 - `service_group`: Domain of anomaly correlation
 - `host`: Host or computer name
-- `logbasename`: Application generating the logs in lowercase, e.g. postgres
+- `logbasename`: Application in lowercase, e.g. postgres
 
 Additional optional attributes can be configured as `labels`.
 These attributes can be derived from the following sources in the
@@ -49,7 +49,9 @@ with the following values:
 The attributes assigned by this processor for consumption by
 ScienceLogic commponents include the following resource attributes:
 
-- `sl_logtype`: Resulting formated log type
+- `sl_service_group`: Domain of anomaly correlation
+- `sl_host`: Host or computer name
+- `sl_logbasename`: Application in lowercase, e.g. postgres
 - `sl_metadata`: An encoding of all log stream metadata
 
 And the following log record attribute:

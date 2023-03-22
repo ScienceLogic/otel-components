@@ -27,10 +27,29 @@ import (
 )
 
 type StreamTokenReq struct {
-	Logbasename string            `json:"logbasename"`
-	Ids         map[string]string `json:"ids"`
-	Cfgs        map[string]string `json:"cfgs"`
-	Tags        map[string]string `json:"tags"`
+	Stream             string            `json:"stream"`
+	Logbasename        string            `json:"logbasename"`
+	ContainerLog       bool              `json:"container_log"`
+	LogType            string            `json:"log_type"`
+	ForwardedLog       bool              `json:"forwarded_log"`
+	Tz                 string            `json:"tz"`
+	ZeLogCollectorVers string            `json:"Ze_log_collector_vers"`
+	Ids                map[string]string `json:"ids"`
+	Cfgs               map[string]string `json:"cfgs"`
+	Tags               map[string]string `json:"tags"`
+}
+
+func newStreamTokenReq() StreamTokenReq {
+	return StreamTokenReq{
+		Stream:             "native",
+		LogType:            "otel",
+		ForwardedLog:       false,
+		Tz:                 time.Now().Location().String(),
+		ZeLogCollectorVers: "0.1.0-otelcollector",
+		Ids:                make(map[string]string),
+		Cfgs:               make(map[string]string),
+		Tags:               make(map[string]string),
+	}
 }
 
 var severityMap map[plog.SeverityNumber]string = map[plog.SeverityNumber]string{
@@ -194,11 +213,7 @@ func evalMessage(elem string, body pcommon.Value) string {
 func (c *Config) MatchProfile(log *zap.Logger, rl plog.ResourceLogs, ils plog.ScopeLogs, lr plog.LogRecord) (string, string, *StreamTokenReq, string, error) {
 
 	for _, profile := range c.Profiles {
-		req := StreamTokenReq{
-			Ids:  make(map[string]string),
-			Cfgs: make(map[string]string),
-			Tags: make(map[string]string),
-		}
+		req := newStreamTokenReq()
 		gen := ConfigProfile{}
 		gen.ServiceGroup = evalElem(profile.ServiceGroup, &req, rl.Resource().Attributes(), lr.Attributes(), lr.Body(), true, false)
 		if gen.ServiceGroup == "" {
@@ -231,6 +246,8 @@ func (c *Config) MatchProfile(log *zap.Logger, rl plog.ResourceLogs, ils plog.Sc
 			}
 			sevText, _ := severityMap[lr.SeverityNumber()]
 			gen.Message = "ze_tm=" + strconv.FormatInt(timestamp.UnixMilli(), 10) + ",msg=" + timestamp.UTC().Format(RFC3339Micro) + " " + sevText + " " + gen.Message
+		case CfgFormatContainer:
+			req.ContainerLog = true
 		}
 		return gen.ServiceGroup, gen.Host, &req, gen.Message, nil
 	}
