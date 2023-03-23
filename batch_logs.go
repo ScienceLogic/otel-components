@@ -48,11 +48,29 @@ func (bl *batchLogs) export(ctx context.Context, sendBatchMaxSize int, returnByt
 	var sent int
 	var bytes int
 	req = plog.NewLogs()
-	for _, rl := range bl.logData {
-		rl.MoveTo(req.ResourceLogs().AppendEmpty())
-	}
-	bl.logData = make(map[string]plog.ResourceLogs)
 	bl.logCount = 0
+	for key, rl := range bl.logData {
+		remove := true
+		newCount := resourceLRC(rl)
+		if newCount > 0 {
+			var newRl plog.ResourceLogs
+			if sendBatchMaxSize > 0 && newCount > sendBatchMaxSize {
+				newRl = splitLogs(sendBatchMaxSize, rl)
+				// recalculate maximum size
+				newCount -= sendBatchMaxSize
+				if newCount > bl.logCount {
+					bl.logCount = newCount
+				}
+				remove = false
+			} else {
+				newRl = rl
+			}
+			newRl.MoveTo(req.ResourceLogs().AppendEmpty())
+		}
+		if remove {
+			delete(bl.logData, key)
+		}
+	}
 	sent = req.LogRecordCount()
 	if returnBytes {
 		bytes = bl.sizer.LogsSize(req)
@@ -71,8 +89,6 @@ func (bl *batchLogs) add(item any) {
 	if newLogsCount == 0 {
 		return
 	}
-	//bl.logCount += newLogsCount
-	//ld.ResourceLogs().MoveAndAppendTo(bl.logData.ResourceLogs())
 	bl.addToBatch(ld)
 }
 
