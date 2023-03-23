@@ -1,7 +1,7 @@
 receivers:
   windowseventlog:
     channel: application
-    start_at: beginning
+    start_at: end
 
 processors:
   sllogformat:
