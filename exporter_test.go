@@ -170,11 +170,10 @@ func getSimpleTestDataSet() (pmetric.Metrics, []types.Record) {
 }
 
 func TestConvertMetricsToRecords(t *testing.T) {
-	logger, _ := zap.NewDevelopment()
 	e := createExporter(
 		context.TODO(),
 		getConfig(),
-		logger,
+		zap.NewNop(),
 		func(context.Context, string, *zap.Logger) *timestreamwrite.Client {
 			return nil
 		},
@@ -184,8 +183,7 @@ func TestConvertMetricsToRecords(t *testing.T) {
 }
 
 func TestIntegrationTimestream(t *testing.T) {
-	logger, _ := zap.NewDevelopment()
-	e := createExporter(context.TODO(), getConfig(), logger, newWriteSession)
+	e := createExporter(context.TODO(), getConfig(), zap.NewNop(), newWriteSession)
 	md, _ := getSimpleTestDataSet()
 	assert.NoError(t, e.pushMetrics(context.TODO(), md))
 }

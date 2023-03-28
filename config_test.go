@@ -35,10 +35,12 @@ func TestUnmarshalFileConfig(t *testing.T) {
 				QueueSize:    10,
 			},
 			RetrySettings: exporterhelper.RetrySettings{
-				Enabled:         true,
-				InitialInterval: 10 * time.Second,
-				MaxInterval:     1 * time.Minute,
-				MaxElapsedTime:  10 * time.Minute,
+				Enabled:             true,
+				InitialInterval:     10 * time.Second,
+				MaxInterval:         1 * time.Minute,
+				MaxElapsedTime:      10 * time.Minute,
+				Multiplier:          1.5,
+				RandomizationFactor: 0.5,
 			},
 			TimeoutSettings: exporterhelper.TimeoutSettings{
 				Timeout: 20 * time.Second,
