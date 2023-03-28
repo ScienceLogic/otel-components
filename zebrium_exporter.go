@@ -87,7 +87,7 @@ retry:
 			return err
 		}
 	}
-	url := s.cfg.Endpoint + "/api/v2/post"
+	url := s.cfg.Endpoint + "/api/v2/tmpost"
 	req, err := http.NewRequest("POST", url, bytes.NewReader(buffer))
 	if err != nil {
 		s.log.Info("Unable to get HTTP request for stream token", zap.String("err", err.Error()))
