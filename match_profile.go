@@ -245,8 +245,7 @@ func (c *Config) MatchProfile(log *zap.Logger, rl plog.ResourceLogs, ils plog.Sc
 				timestamp = time.Unix(0, int64(lr.ObservedTimestamp()))
 			}
 			sevText, _ := severityMap[lr.SeverityNumber()]
-			// gen.Message = "ze_tm=" + strconv.FormatInt(timestamp.UnixMilli(), 10) + ",msg=" + timestamp.UTC().Format(RFC3339Micro) + " " + sevText + " " + gen.Message
-			gen.Message = "ze_tm=" + strconv.FormatInt(timestamp.UnixMilli(), 10) + ",msg=" + sevText + " " + gen.Message
+			gen.Message = "ze_tm=" + strconv.FormatInt(timestamp.UnixMilli(), 10) + ",msg=" + timestamp.UTC().Format(RFC3339Micro) + " " + sevText + " " + gen.Message
 		case CfgFormatContainer:
 			req.ContainerLog = true
 		}
