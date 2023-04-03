@@ -182,8 +182,11 @@ func TestConvertMetricsToRecords(t *testing.T) {
 	assert.Equal(t, records, e.convertMetricsToRecords(md))
 }
 
+/* integration test, disable for now */
+/*
 func TestIntegrationTimestream(t *testing.T) {
 	e := createExporter(context.TODO(), getConfig(), zap.NewNop(), newWriteSession)
 	md, _ := getSimpleTestDataSet()
 	assert.NoError(t, e.pushMetrics(context.TODO(), md))
 }
+*/
