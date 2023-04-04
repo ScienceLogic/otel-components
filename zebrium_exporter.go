@@ -89,7 +89,7 @@ retry:
 	}
 	url := s.cfg.Endpoint
 	switch format {
-	case "event":
+	case CfgFormatEvent:
 		url += "/api/v2/tmpost"
 	default:
 		url += "/api/v2/post"
