@@ -210,7 +210,7 @@ func evalMessage(elem string, body pcommon.Value) string {
 	return ret
 }
 
-func (c *Config) MatchProfile(log *zap.Logger, rl plog.ResourceLogs, ils plog.ScopeLogs, lr plog.LogRecord) (string, string, *StreamTokenReq, string, error) {
+func (c *Config) MatchProfile(log *zap.Logger, rl plog.ResourceLogs, ils plog.ScopeLogs, lr plog.LogRecord) (*ConfigProfile, *StreamTokenReq, error) {
 
 	for _, profile := range c.Profiles {
 		req := newStreamTokenReq()
@@ -249,7 +249,8 @@ func (c *Config) MatchProfile(log *zap.Logger, rl plog.ResourceLogs, ils plog.Sc
 		case CfgFormatContainer:
 			req.ContainerLog = true
 		}
-		return gen.ServiceGroup, gen.Host, &req, gen.Message, nil
+		gen.Format = profile.Format
+		return &gen, &req, nil
 	}
-	return "", "", nil, "", errors.New("No matching profile for log record")
+	return nil, nil, errors.New("No matching profile for log record")
 }

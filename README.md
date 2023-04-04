@@ -53,6 +53,7 @@ ScienceLogic commponents include the following resource attributes:
 - `sl_service_group`: Domain of anomaly correlation
 - `sl_host`: Host or computer name
 - `sl_logbasename`: Application in lowercase, e.g. postgres
+- `sl_format`: Format option from the matching profile, e.g. event
 - `sl_metadata`: An encoding of all log stream metadata
 
 And the following log record attribute:
