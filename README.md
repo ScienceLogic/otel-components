@@ -24,6 +24,7 @@ to populate the following attributes:
 
 - `sl_metadata`: Resource attribute with encoded metadata that identifies logs from a single application instance
 - `sl_msg`: Log record attribute with the body of the log message formated for ScienceLogic
+- `sl_format`: Format option from the matching profile, e.g. event
 
 The following example shows how to configure the format processor and exporter in a pipeline:
 

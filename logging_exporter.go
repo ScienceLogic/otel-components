@@ -17,8 +17,10 @@ package slzebriumexporter // import "github.com/open-telemetry/opentelemetry-col
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"os"
+	"strings"
 
 	"go.uber.org/zap"
 
@@ -32,6 +34,40 @@ type loggingExporter struct {
 	log            *zap.Logger
 	client         *http.Client
 	streamTokenMap map[string]string
+}
+
+const (
+	CfgFormatMessage   string = "message"
+	CfgFormatContainer string = "container"
+	CfgFormatEvent     string = "event"
+)
+
+var cfgFormatMap map[string]struct{} = map[string]struct{}{
+	CfgFormatMessage:   {},
+	CfgFormatContainer: {},
+	CfgFormatEvent:     {},
+}
+
+func keysForMap(mymap map[string]struct{}) []string {
+	keys := make([]string, len(mymap))
+	i := 0
+	for k := range mymap {
+		keys[i] = k
+		i++
+	}
+	return keys
+}
+
+func validateResourceElem(idx int, name, str string, cfgMap map[string]struct{}) error {
+	arr := strings.Split(str, ":")
+	if len(arr) < 1 || len(arr[0]) < 1 {
+		return fmt.Errorf("resource %d missing %s", idx, name)
+	}
+	_, ok := cfgMap[arr[0]]
+	if !ok {
+		return fmt.Errorf("resource %d invalid value %s for %s, supported values %v", idx, arr[0], name, keysForMap(cfgMap))
+	}
+	return nil
 }
 
 func (s *loggingExporter) pushLogs(_ context.Context, ld plog.Logs) error {
@@ -57,7 +93,12 @@ func (s *loggingExporter) pushLogs(_ context.Context, ld plog.Logs) error {
 			s.log.Info(string(buffer))
 		}
 
-		err = s.sendLogs(request, buffer)
+		val, _ := rl.Resource().Attributes().Get("sl_format")
+		format := val.AsString()
+		if err := validateResourceElem(i, "sl_format", format, cfgFormatMap); err != nil {
+			return err
+		}
+		err = s.sendLogs(request, format, buffer)
 		if err != nil {
 			s.log.Error("Failed to send logs", zap.String("err", err.Error()))
 			return err

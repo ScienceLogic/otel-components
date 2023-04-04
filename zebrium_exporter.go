@@ -76,7 +76,7 @@ func (s *loggingExporter) getStreamToken(request string) (string, error) {
 	return token, nil
 }
 
-func (s *loggingExporter) sendLogs(request string, buffer []byte) error {
+func (s *loggingExporter) sendLogs(request, format string, buffer []byte) error {
 	alreadyRetried := false
 	token, _ := s.streamTokenMap[request]
 retry:
@@ -87,7 +87,13 @@ retry:
 			return err
 		}
 	}
-	url := s.cfg.Endpoint + "/api/v2/tmpost"
+	url := s.cfg.Endpoint
+	switch format {
+	case "event":
+		url += "/api/v2/tmpost"
+	default:
+		url += "/api/v2/post"
+	}
 	req, err := http.NewRequest("POST", url, bytes.NewReader(buffer))
 	if err != nil {
 		s.log.Info("Unable to get HTTP request for stream token", zap.String("err", err.Error()))
