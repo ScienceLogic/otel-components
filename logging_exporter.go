@@ -93,8 +93,11 @@ func (s *loggingExporter) pushLogs(_ context.Context, ld plog.Logs) error {
 			s.log.Info(string(buffer))
 		}
 
-		val, _ := rl.Resource().Attributes().Get("sl_format")
-		format := val.AsString()
+		var format string
+		val, ok := rl.Resource().Attributes().Get("sl_format")
+		if ok {
+			format = val.AsString()
+		}
 		if err := validateResourceElem(i, "sl_format", format, cfgFormatMap); err != nil {
 			return err
 		}
