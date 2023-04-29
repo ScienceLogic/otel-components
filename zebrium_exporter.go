@@ -28,9 +28,12 @@ import (
 )
 
 func (s *loggingExporter) getStreamTokenRequest(rl plog.ResourceLogs) (string, error) {
+	var request string
 	val, ok := rl.Resource().Attributes().Get("sl_metadata")
-	request := val.AsString()
-	if !ok || request == "" {
+	if ok {
+		request = val.AsString()
+	}
+	if request == "" {
 		return "", errors.New("Missing sl_metadata resource attribute, configure log format processor")
 	}
 	return request, nil
