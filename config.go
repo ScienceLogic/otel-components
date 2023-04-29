@@ -55,6 +55,12 @@ const (
 	CfgOptionLc        string = "lc"
 )
 
+var cfgIdNames map[string]struct{} = map[string]struct{}{
+	"service_group": {},
+	"host":          {},
+	"logbasename":   {},
+}
+
 var cfgSourceMap map[string]struct{} = map[string]struct{}{
 	CfgSourceRattr: {},
 	CfgSourceAttr:  {},
@@ -101,6 +107,10 @@ func validateProfileElem(idx int, name, str string, cfgMap map[string]struct{}) 
 	_, ok := cfgMap[arr[0]]
 	if !ok {
 		return fmt.Errorf("profile %d invalid value %s for %s, supported values %v", idx, arr[0], name, keysForMap(cfgMap))
+	}
+	_, ok = cfgIdNames[name]
+	if ok && len(arr) < 3 {
+		return fmt.Errorf("profile %d - %s: %s requires a replacement key", idx, name, str)
 	}
 	if len(arr) > 3 {
 		for _, option := range arr[3:] {
