@@ -32,7 +32,9 @@ incoming stream:
 
 The syntax for associating metadata looks like:
 
-```<destination>: <source>:<list of keys to try>:<optional replacement key>:<options>```
+```<destination>: <source>:<list of keys to try>:<replacement key>:<options>```
+
+Replacement keys are optional for labels which default to the source key.
 
 The following options are supported:
 
