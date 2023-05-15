@@ -52,7 +52,7 @@ func newStreamTokenReq() StreamTokenReq {
 }
 
 var severityMap map[plog.SeverityNumber]string = map[plog.SeverityNumber]string{
-	plog.SeverityNumberUnspecified: "",
+	plog.SeverityNumberUnspecified: "INFO",
 	plog.SeverityNumberTrace:       "TRACE",
 	plog.SeverityNumberTrace2:      "TRACE",
 	plog.SeverityNumberTrace3:      "TRACE",
@@ -79,27 +79,8 @@ var severityMap map[plog.SeverityNumber]string = map[plog.SeverityNumber]string{
 	plog.SeverityNumberFatal4:      "FATAL",
 }
 
-func evalValue(component string, in pcommon.Value) string {
+func evalValue(component string, val pcommon.Value) string {
 	var ret string
-	keys := strings.Split(component, ".")
-	count := 0
-	val := in
-	for _, key := range keys {
-		count++
-		switch val.Type() {
-		case pcommon.ValueTypeMap:
-			var ok bool
-			val, ok = val.Map().Get(key)
-			if !ok {
-				return ""
-			}
-		default:
-			break
-		}
-	}
-	if count < len(keys) {
-		return ""
-	}
 	switch val.Type() {
 	case pcommon.ValueTypeMap:
 		return ""
@@ -165,7 +146,11 @@ func evalElem(elem string, req *StreamTokenReq, rattr, attr pcommon.Map, body pc
 	case CfgSourceAttr:
 		ret = evalMap(arr3[1], attr)
 	case CfgSourceBody:
-		ret = evalValue(arr3[1], body)
+		if body.Type() == pcommon.ValueTypeMap {
+			ret = evalMap(arr3[1], body.Map())
+		} else {
+			ret = evalValue(arr3[1], body)
+		}
 	}
 	id := arr3[1]
 	if len(arr) > 1 {
