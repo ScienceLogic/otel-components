@@ -104,7 +104,18 @@ func validateProfileElem(idx int, name, str string, cfgMap map[string]struct{}) 
 	if len(arr) < 1 || len(arr[0]) < 1 {
 		return fmt.Errorf("profile %d missing %s", idx, name)
 	}
-	arr3 := strings.SplitN(arr[0], ".", 2)
+	elem := arr[0]
+	if strings.HasPrefix(elem, "replace(") {
+		idx2 := strings.Index(elem, ",")
+		if idx2 < 0 {
+			return fmt.Errorf("profile %d invalid value %s for %s, replace requires arguments", idx, arr[0], name)
+		}
+		elem = elem[len("replace("):idx2]
+		if len(elem) < 1 {
+			return fmt.Errorf("profile %d invalid value %s for %s, replace requires arguments", idx, arr[0], name)
+		}
+	}
+	arr3 := strings.SplitN(elem, ".", 2)
 	if len(arr3) < 1 || len(arr3[0]) < 1 {
 		return fmt.Errorf("profile %d missing %s", idx, name)
 	}

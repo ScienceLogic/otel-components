@@ -15,6 +15,7 @@
 package sllogformatprocessor // import "github.com/open-telemetry/opentelemetry-collector-contrib/processor/sllogformatprocessor"
 import (
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -134,9 +135,21 @@ func evalMap(elem string, in pcommon.Map) string {
 	return ""
 }
 
-func evalElem(elem string, req *StreamTokenReq, rattr, attr pcommon.Map, body pcommon.Value, isId, setLogType bool) string {
-	var ret string
+func evalElem(elem string, req *StreamTokenReq, rattr, attr pcommon.Map, body pcommon.Value, isId, isCfg bool) string {
+	var ret, replaceFrom, replaceTo string
 	arr := strings.Split(elem, ":")
+	fmt.Printf("ALAN 141 %t %t\n", strings.HasPrefix(arr[0], "replace("), arr[0][len(arr[0])-1] == ')')
+	doReplace := strings.HasPrefix(arr[0], "replace(") && arr[0][len(arr[0])-1] == ')'
+	if doReplace {
+		replaceFrom = arr[0][len("replace("):]
+		arr4 := strings.Split(replaceFrom, ",")
+		replaceFrom = arr4[1]
+		if len(arr4) > 2 {
+			replaceTo = arr4[2][:len(arr4[2])-1]
+		}
+		arr[0] = arr[0][len("replace("):strings.Index(arr[0], ",")]
+		fmt.Printf("ALAN 151 |%s| |%s| |%s|\n", arr[0], replaceFrom, replaceTo)
+	}
 	arr3 := strings.SplitN(arr[0], ".", 2)
 	switch arr3[0] {
 	case CfgSourceLit:
@@ -151,6 +164,9 @@ func evalElem(elem string, req *StreamTokenReq, rattr, attr pcommon.Map, body pc
 		} else {
 			ret = evalValue(arr3[1], body)
 		}
+	}
+	if doReplace {
+		ret = strings.Replace(ret, replaceFrom, replaceTo, -1)
 	}
 	id := arr3[1]
 	if len(arr) > 1 {
@@ -181,17 +197,15 @@ func evalElem(elem string, req *StreamTokenReq, rattr, attr pcommon.Map, body pc
 	}
 	if isId {
 		req.Ids[id] = ret
-	} else {
-		req.Cfgs[id] = ret
 	}
-	if setLogType {
-		req.Logbasename = ret
+	if isCfg {
+		req.Cfgs[id] = ret
 	}
 	return ret
 }
 
 func (c *Config) MatchProfile(log *zap.Logger, rl plog.ResourceLogs, ils plog.ScopeLogs, lr plog.LogRecord) (*ConfigProfile, *StreamTokenReq, error) {
-
+	fmt.Printf("ALAN 200\n")
 	for _, profile := range c.Profiles {
 		req := newStreamTokenReq()
 		gen := ConfigProfile{}
@@ -203,12 +217,13 @@ func (c *Config) MatchProfile(log *zap.Logger, rl plog.ResourceLogs, ils plog.Sc
 		if gen.Host == "" {
 			continue
 		}
-		gen.Logbasename = evalElem(profile.Logbasename, &req, rl.Resource().Attributes(), lr.Attributes(), lr.Body(), true, true)
+		gen.Logbasename = evalElem(profile.Logbasename, &req, rl.Resource().Attributes(), lr.Attributes(), lr.Body(), true, false)
 		if gen.Logbasename == "" {
 			continue
 		}
+		req.Logbasename = gen.Logbasename
 		for _, label := range profile.Labels {
-			_ = evalElem(label, &req, rl.Resource().Attributes(), lr.Attributes(), lr.Body(), false, false)
+			_ = evalElem(label, &req, rl.Resource().Attributes(), lr.Attributes(), lr.Body(), false, true)
 		}
 		gen.Message = evalElem(profile.Message, &req, rl.Resource().Attributes(), lr.Attributes(), lr.Body(), false, false)
 		if gen.Message == "" {
