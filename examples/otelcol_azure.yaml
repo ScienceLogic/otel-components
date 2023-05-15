@@ -1,0 +1,26 @@
+receivers:
+  azureeventhub:
+    connection: Endpoint=sb://alannamespace.servicebus.windows.net/;SharedAccessKeyName=Listener;SharedAccessKey=OxiXco3aMe9aJ7T9i6wfYPqqbX3HWno3Z+AEhIyiv5A=;EntityPath=alaneventhub
+    format: azure
+
+processors:
+  sllogformat:
+    send_batch_size: 10000
+    timeout: 10s
+    profiles:
+    - service_group: lit.default:ze_deployment_name # azure audit log
+      host: attr.azure.tenant.id:host
+      logbasename: attr.azure.category:logbasename:lc
+      message: attr.azure.identity.authorization.action
+      format: event
+
+exporters:
+  logging:
+    verbosity: detailed
+
+service:
+  pipelines:
+    logs:
+      receivers: [azureeventhub]
+      processors: [sllogformat]
+      exporters: [logging]
