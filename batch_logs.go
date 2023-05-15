@@ -99,7 +99,7 @@ func (bl *batchLogs) addToBatch(ld plog.Logs) {
 			ils.LogRecords().RemoveIf(func(lr plog.LogRecord) bool {
 				gen, req, err := bl.cfg.MatchProfile(bl.log, rl, ils, lr)
 				if err != nil {
-					bl.log.Error("Field to match profile",
+					bl.log.Error("Failed to match profile",
 						zap.String("err", err.Error()))
 					return true
 				}

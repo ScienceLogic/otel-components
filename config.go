@@ -104,16 +104,20 @@ func validateProfileElem(idx int, name, str string, cfgMap map[string]struct{}) 
 	if len(arr) < 1 || len(arr[0]) < 1 {
 		return fmt.Errorf("profile %d missing %s", idx, name)
 	}
-	_, ok := cfgMap[arr[0]]
+	arr3 := strings.SplitN(arr[0], ".", 2)
+	if len(arr3) < 1 || len(arr3[0]) < 1 {
+		return fmt.Errorf("profile %d missing %s", idx, name)
+	}
+	_, ok := cfgMap[arr3[0]]
 	if !ok {
-		return fmt.Errorf("profile %d invalid value %s for %s, supported values %v", idx, arr[0], name, keysForMap(cfgMap))
+		return fmt.Errorf("profile %d invalid value %s for %s, supported values %v", idx, arr3[0], name, keysForMap(cfgMap))
 	}
 	_, ok = cfgIdNames[name]
-	if ok && len(arr) < 3 {
+	if ok && len(arr) < 2 {
 		return fmt.Errorf("profile %d - %s: %s requires a replacement key", idx, name, str)
 	}
-	if len(arr) > 3 {
-		for _, option := range arr[3:] {
+	if len(arr) > 2 {
+		for _, option := range arr[2:] {
 			arr2 := strings.SplitN(option, "=", 2)
 			if len(arr2) < 1 || len(arr2[0]) < 1 {
 				return fmt.Errorf("profile %d missing option for %s", idx, name)

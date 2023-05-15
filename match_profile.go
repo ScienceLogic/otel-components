@@ -13,7 +13,6 @@
 // limitations under the License.
 
 package sllogformatprocessor // import "github.com/open-telemetry/opentelemetry-collector-contrib/processor/sllogformatprocessor"
-
 import (
 	"errors"
 	"strconv"
@@ -82,43 +81,38 @@ var severityMap map[plog.SeverityNumber]string = map[plog.SeverityNumber]string{
 
 func evalValue(component string, in pcommon.Value) string {
 	var ret string
-	for _, entry := range strings.Split(component, "|") {
-		keys := strings.Split(entry, ".")
-		count := 0
-		val := in
-		for _, key := range keys {
-			count++
-			switch val.Type() {
-			case pcommon.ValueTypeMap:
-				var ok bool
-				val, ok = val.Map().Get(key)
-				if !ok {
-					return ""
-				}
-			default:
-				break
-			}
-		}
-		if count < len(keys) {
-			return ""
-		}
+	keys := strings.Split(component, ".")
+	count := 0
+	val := in
+	for _, key := range keys {
+		count++
 		switch val.Type() {
 		case pcommon.ValueTypeMap:
-			return ""
-		case pcommon.ValueTypeSlice:
-			for idx := 0; idx < val.Slice().Len(); idx++ {
-				val2 := val.Slice().At(idx)
-				if ret != "" {
-					ret += " "
-				}
-				ret += val2.AsString()
+			var ok bool
+			val, ok = val.Map().Get(key)
+			if !ok {
+				return ""
 			}
 		default:
-			ret = val.AsString()
-		}
-		if ret != "" {
 			break
 		}
+	}
+	if count < len(keys) {
+		return ""
+	}
+	switch val.Type() {
+	case pcommon.ValueTypeMap:
+		return ""
+	case pcommon.ValueTypeSlice:
+		for idx := 0; idx < val.Slice().Len(); idx++ {
+			val2 := val.Slice().At(idx)
+			if ret != "" {
+				ret += " "
+			}
+			ret += val2.AsString()
+		}
+	default:
+		ret = val.AsString()
 	}
 	ret = strings.Map(func(r rune) rune {
 		if unicode.IsPrint(r) {
@@ -131,37 +125,53 @@ func evalValue(component string, in pcommon.Value) string {
 	return ret
 }
 
+func evalMap(elem string, in pcommon.Map) string {
+	arr := strings.Split(elem, ".")
+	if len(arr) < 1 {
+		return ""
+	}
+	path := ""
+	for idx, key := range arr {
+		if path == "" {
+			path = key
+		} else {
+			path += "." + key
+		}
+		val, ok := in.Get(path)
+		if ok {
+			if val.Type() == pcommon.ValueTypeMap {
+				in = val.Map()
+				path = ""
+				continue
+			}
+			if len(arr) > idx+1 {
+				elem = arr[idx+1]
+			}
+			return evalValue(elem, val)
+		}
+	}
+	return ""
+}
+
 func evalElem(elem string, req *StreamTokenReq, rattr, attr pcommon.Map, body pcommon.Value, isId, setLogType bool) string {
 	var ret string
 	arr := strings.Split(elem, ":")
-	switch arr[0] {
+	arr3 := strings.SplitN(arr[0], ".", 2)
+	switch arr3[0] {
 	case CfgSourceLit:
 		ret = arr[1]
 	case CfgSourceRattr:
-		val, ok := rattr.Get(arr[1])
-		if ok {
-			ret = val.AsString()
-		}
+		ret = evalMap(arr3[1], rattr)
 	case CfgSourceAttr:
-		val, ok := attr.Get(arr[1])
-		if ok {
-			ret = val.AsString()
-		}
+		ret = evalMap(arr3[1], attr)
 	case CfgSourceBody:
-		val := body
-		if len(arr) > 1 {
-			if val.Type() != pcommon.ValueTypeStr {
-				ret = evalValue(arr[1], val)
-			}
-		} else {
-			ret = val.AsString()
-		}
+		ret = evalValue(arr3[1], body)
 	}
-	id := arr[1]
-	if len(arr) > 2 {
+	id := arr3[1]
+	if len(arr) > 1 {
 		// Apply destination label name, e.g. ze_deployment_name
-		id = arr[2]
-		if len(arr) > 3 {
+		id = arr[1]
+		if len(arr) > 2 {
 			// Apply options
 			for _, option := range arr[2:] {
 				arr2 := strings.SplitN(option, "=", 2)
@@ -195,21 +205,6 @@ func evalElem(elem string, req *StreamTokenReq, rattr, attr pcommon.Map, body pc
 	return ret
 }
 
-func evalMessage(elem string, body pcommon.Value) string {
-	var ret string
-	arr := strings.Split(elem, ":")
-	switch arr[0] {
-	case CfgSourceBody:
-		val := body
-		if len(arr) > 1 {
-			ret = evalValue(arr[1], val)
-		} else {
-			ret = val.AsString()
-		}
-	}
-	return ret
-}
-
 func (c *Config) MatchProfile(log *zap.Logger, rl plog.ResourceLogs, ils plog.ScopeLogs, lr plog.LogRecord) (*ConfigProfile, *StreamTokenReq, error) {
 
 	for _, profile := range c.Profiles {
@@ -230,7 +225,7 @@ func (c *Config) MatchProfile(log *zap.Logger, rl plog.ResourceLogs, ils plog.Sc
 		for _, label := range profile.Labels {
 			_ = evalElem(label, &req, rl.Resource().Attributes(), lr.Attributes(), lr.Body(), false, false)
 		}
-		gen.Message = evalMessage(profile.Message, lr.Body())
+		gen.Message = evalElem(profile.Message, &req, rl.Resource().Attributes(), lr.Attributes(), lr.Body(), false, false)
 		if gen.Message == "" {
 			continue
 		}
