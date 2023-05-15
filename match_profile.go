@@ -134,7 +134,7 @@ func evalMap(elem string, in pcommon.Map) string {
 	return ""
 }
 
-func evalElem(elem string, req *StreamTokenReq, rattr, attr pcommon.Map, body pcommon.Value, isId, isCfg bool) string {
+func evalElem(elem string, rattr, attr pcommon.Map, body pcommon.Value) (string, string) {
 	var ret, replaceFrom, replaceTo string
 	arr := strings.Split(elem, ":")
 	doReplace := strings.HasPrefix(arr[0], "replace(") && arr[0][len(arr[0])-1] == ')'
@@ -192,36 +192,35 @@ func evalElem(elem string, req *StreamTokenReq, rattr, attr pcommon.Map, body pc
 			}
 		}
 	}
-	if isId {
-		req.Ids[id] = ret
-	}
-	if isCfg {
-		req.Cfgs[id] = ret
-	}
-	return ret
+	return id, ret
 }
 
 func (c *Config) MatchProfile(log *zap.Logger, rl plog.ResourceLogs, ils plog.ScopeLogs, lr plog.LogRecord) (*ConfigProfile, *StreamTokenReq, error) {
+	var id, ret string
 	for _, profile := range c.Profiles {
 		req := newStreamTokenReq()
 		gen := ConfigProfile{}
-		gen.ServiceGroup = evalElem(profile.ServiceGroup, &req, rl.Resource().Attributes(), lr.Attributes(), lr.Body(), true, false)
+		id, gen.ServiceGroup = evalElem(profile.ServiceGroup, rl.Resource().Attributes(), lr.Attributes(), lr.Body())
 		if gen.ServiceGroup == "" {
 			continue
 		}
-		gen.Host = evalElem(profile.Host, &req, rl.Resource().Attributes(), lr.Attributes(), lr.Body(), true, false)
+		req.Ids[id] = gen.ServiceGroup
+		id, gen.Host = evalElem(profile.Host, rl.Resource().Attributes(), lr.Attributes(), lr.Body())
 		if gen.Host == "" {
 			continue
 		}
-		gen.Logbasename = evalElem(profile.Logbasename, &req, rl.Resource().Attributes(), lr.Attributes(), lr.Body(), true, false)
+		req.Ids[id] = gen.Host
+		id, gen.Logbasename = evalElem(profile.Logbasename, rl.Resource().Attributes(), lr.Attributes(), lr.Body())
 		if gen.Logbasename == "" {
 			continue
 		}
+		req.Ids[id] = gen.Logbasename
 		req.Logbasename = gen.Logbasename
 		for _, label := range profile.Labels {
-			_ = evalElem(label, &req, rl.Resource().Attributes(), lr.Attributes(), lr.Body(), false, true)
+			id, ret = evalElem(label, rl.Resource().Attributes(), lr.Attributes(), lr.Body())
+			req.Cfgs[id] = ret
 		}
-		gen.Message = evalElem(profile.Message, &req, rl.Resource().Attributes(), lr.Attributes(), lr.Body(), false, false)
+		id, gen.Message = evalElem(profile.Message, rl.Resource().Attributes(), lr.Attributes(), lr.Body())
 		if gen.Message == "" {
 			continue
 		}
