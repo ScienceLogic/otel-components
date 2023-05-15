@@ -15,7 +15,6 @@
 package sllogformatprocessor // import "github.com/open-telemetry/opentelemetry-collector-contrib/processor/sllogformatprocessor"
 import (
 	"errors"
-	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -138,7 +137,6 @@ func evalMap(elem string, in pcommon.Map) string {
 func evalElem(elem string, req *StreamTokenReq, rattr, attr pcommon.Map, body pcommon.Value, isId, isCfg bool) string {
 	var ret, replaceFrom, replaceTo string
 	arr := strings.Split(elem, ":")
-	fmt.Printf("ALAN 141 %t %t\n", strings.HasPrefix(arr[0], "replace("), arr[0][len(arr[0])-1] == ')')
 	doReplace := strings.HasPrefix(arr[0], "replace(") && arr[0][len(arr[0])-1] == ')'
 	if doReplace {
 		replaceFrom = arr[0][len("replace("):]
@@ -148,7 +146,6 @@ func evalElem(elem string, req *StreamTokenReq, rattr, attr pcommon.Map, body pc
 			replaceTo = arr4[2][:len(arr4[2])-1]
 		}
 		arr[0] = arr[0][len("replace("):strings.Index(arr[0], ",")]
-		fmt.Printf("ALAN 151 |%s| |%s| |%s|\n", arr[0], replaceFrom, replaceTo)
 	}
 	arr3 := strings.SplitN(arr[0], ".", 2)
 	switch arr3[0] {
@@ -205,7 +202,6 @@ func evalElem(elem string, req *StreamTokenReq, rattr, attr pcommon.Map, body pc
 }
 
 func (c *Config) MatchProfile(log *zap.Logger, rl plog.ResourceLogs, ils plog.ScopeLogs, lr plog.LogRecord) (*ConfigProfile, *StreamTokenReq, error) {
-	fmt.Printf("ALAN 200\n")
 	for _, profile := range c.Profiles {
 		req := newStreamTokenReq()
 		gen := ConfigProfile{}
