@@ -79,6 +79,34 @@ var severityMap map[plog.SeverityNumber]string = map[plog.SeverityNumber]string{
 	plog.SeverityNumberFatal4:      "FATAL",
 }
 
+type Operator func(string, string) string
+
+var ops map[string]Operator = map[string]Operator{
+	"||": func(a, b string) string {
+		if len(a) > 0 {
+			return a
+		}
+		return b
+	},
+	"+": func(a, b string) string { return a + " " + b },
+}
+
+func nextToken(in string) (string, string, string) {
+	idx := len(in)
+	op := ""
+	for op2, _ := range ops {
+		idx2 := strings.Index(in, op2)
+		if idx2 < 0 {
+			continue
+		}
+		if idx2 < idx {
+			idx = idx2
+			op = op2
+		}
+	}
+	return in[:idx], op, in[idx+len(op):]
+}
+
 func evalValue(component string, val pcommon.Value) string {
 	var ret string
 	switch val.Type() {
@@ -174,9 +202,20 @@ func (p *Parser) evalToken(elem string) (string, string) {
 }
 
 func (p *Parser) EvalElem(elem string) (string, string) {
-	var id, ret string
+	var id, ret, ret2, op string
 	arr := strings.Split(elem, ":")
-	id, ret = p.evalToken(arr[0])
+	text := arr[0]
+	for len(text) > 0 {
+		var token2, op2 string
+		token2, op2, text = nextToken(text)
+		id, ret2 = p.evalToken(token2)
+		if op != "" {
+			ret = (ops[op])(ret, ret2)
+		} else {
+			ret = ret2
+		}
+		op = op2
+	}
 	if len(arr) > 1 {
 		// Apply destination label name, e.g. ze_deployment_name
 		id = arr[1]
