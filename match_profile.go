@@ -134,38 +134,49 @@ func evalMap(elem string, in pcommon.Map) string {
 	return ""
 }
 
-func evalElem(elem string, rattr, attr pcommon.Map, body pcommon.Value) (string, string) {
+type Parser struct {
+	Rattr pcommon.Map
+	Attr  pcommon.Map
+	Body  pcommon.Value
+}
+
+func (p *Parser) evalToken(elem string) (string, string) {
 	var ret, replaceFrom, replaceTo string
-	arr := strings.Split(elem, ":")
-	doReplace := strings.HasPrefix(arr[0], "replace(") && arr[0][len(arr[0])-1] == ')'
+	doReplace := strings.HasPrefix(elem, "replace(") && elem[len(elem)-1] == ')'
 	if doReplace {
-		replaceFrom = arr[0][len("replace("):]
+		replaceFrom = elem[len("replace("):]
 		arr4 := strings.Split(replaceFrom, ",")
 		replaceFrom = arr4[1]
 		if len(arr4) > 2 {
 			replaceTo = arr4[2][:len(arr4[2])-1]
 		}
-		arr[0] = arr[0][len("replace("):strings.Index(arr[0], ",")]
+		elem = elem[len("replace("):strings.Index(elem, ",")]
 	}
-	arr3 := strings.SplitN(arr[0], ".", 2)
+	arr3 := strings.SplitN(elem, ".", 2)
 	switch arr3[0] {
 	case CfgSourceLit:
-		ret = arr[1]
+		ret = arr3[1]
 	case CfgSourceRattr:
-		ret = evalMap(arr3[1], rattr)
+		ret = evalMap(arr3[1], p.Rattr)
 	case CfgSourceAttr:
-		ret = evalMap(arr3[1], attr)
+		ret = evalMap(arr3[1], p.Attr)
 	case CfgSourceBody:
-		if body.Type() == pcommon.ValueTypeMap {
-			ret = evalMap(arr3[1], body.Map())
+		if p.Body.Type() == pcommon.ValueTypeMap {
+			ret = evalMap(arr3[1], p.Body.Map())
 		} else {
-			ret = evalValue(arr3[1], body)
+			ret = evalValue(arr3[1], p.Body)
 		}
 	}
 	if doReplace {
 		ret = strings.Replace(ret, replaceFrom, replaceTo, -1)
 	}
-	id := arr3[1]
+	return arr3[1], ret
+}
+
+func (p *Parser) EvalElem(elem string) (string, string) {
+	var id, ret string
+	arr := strings.Split(elem, ":")
+	id, ret = p.evalToken(arr[0])
 	if len(arr) > 1 {
 		// Apply destination label name, e.g. ze_deployment_name
 		id = arr[1]
@@ -200,27 +211,32 @@ func (c *Config) MatchProfile(log *zap.Logger, rl plog.ResourceLogs, ils plog.Sc
 	for _, profile := range c.Profiles {
 		req := newStreamTokenReq()
 		gen := ConfigProfile{}
-		id, gen.ServiceGroup = evalElem(profile.ServiceGroup, rl.Resource().Attributes(), lr.Attributes(), lr.Body())
+		parser := Parser{
+			Rattr: rl.Resource().Attributes(),
+			Attr:  lr.Attributes(),
+			Body:  lr.Body(),
+		}
+		id, gen.ServiceGroup = parser.EvalElem(profile.ServiceGroup)
 		if gen.ServiceGroup == "" {
 			continue
 		}
 		req.Ids[id] = gen.ServiceGroup
-		id, gen.Host = evalElem(profile.Host, rl.Resource().Attributes(), lr.Attributes(), lr.Body())
+		id, gen.Host = parser.EvalElem(profile.Host)
 		if gen.Host == "" {
 			continue
 		}
 		req.Ids[id] = gen.Host
-		id, gen.Logbasename = evalElem(profile.Logbasename, rl.Resource().Attributes(), lr.Attributes(), lr.Body())
+		id, gen.Logbasename = parser.EvalElem(profile.Logbasename)
 		if gen.Logbasename == "" {
 			continue
 		}
 		req.Ids[id] = gen.Logbasename
 		req.Logbasename = gen.Logbasename
 		for _, label := range profile.Labels {
-			id, ret = evalElem(label, rl.Resource().Attributes(), lr.Attributes(), lr.Body())
+			id, ret = parser.EvalElem(label)
 			req.Cfgs[id] = ret
 		}
-		id, gen.Message = evalElem(profile.Message, rl.Resource().Attributes(), lr.Attributes(), lr.Body())
+		_, gen.Message = parser.EvalElem(profile.Message)
 		if gen.Message == "" {
 			continue
 		}
