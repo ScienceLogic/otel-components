@@ -32,9 +32,16 @@ incoming stream:
 
 The syntax for associating metadata looks like:
 
-```<destination>: <source>:<list of keys to try>:<replacement key>:<options>```
+```<destination>: <source>.<key>:<replacement key>:<options>```
 
-Replacement keys are optional for labels which default to the source key.
+Keys can be surrounded by multiple operators:
+
+- `replace(<key>,str1,str2)`: Will replace str1 with str2 in the result
+- `<key1>+<key2>`: Will append the result of key1 with the result of key2
+- `<key1>||<key2>`: Will return the result of key1 or, if empty, the result of key2
+
+The + and || operators are evaluate from left to right.
+Replacement keys are optional for labels which default to the last source key.
 
 The following options are supported:
 
@@ -81,20 +88,20 @@ processors:
     send_batch_size: 10000
     timeout: 10s
     profiles:
-    - service_group: lit:default:ze_deployment_name # windows event log
-      host: body:computer:host
-      logbasename: body:provider.name:logbasename:rmprefix=Microsoft-Windows-:alphanum:lc
+    - service_group: lit.default:ze_deployment_name # windows event log
+      host: body.computer:host
+      logbasename: body.provider.name:logbasename:rmprefix=Microsoft-Windows-:alphanum:lc
       labels:
-      - body:channel:win_channel
-      - body:keywords:win_keywords
-      message: body:message|event_data|keywords
+      - body.channel:win_channel
+      - body.keywords:win_keywords
+      message: body.message||body.event_data||body.keywords
       format: event
-    - service_group: lit:default:ze_deployment_name # docker logs
-      host: rattr:host.name:host
-      logbasename: attr:container_id:logbasename
+    - service_group: lit.default:ze_deployment_name # docker logs
+      host: rattr.host.name:host
+      logbasename: attr.container_id:logbasename
       labels:
-      - rattr:os.type
-      - attr:log.file.path:zid_path
+      - rattr.os.type
+      - attr.log.file.path:zid_path
       message: body
       format: container
 ```
