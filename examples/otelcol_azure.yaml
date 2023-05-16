@@ -11,7 +11,7 @@ processors:
     - service_group: lit.default:ze_deployment_name # azure audit log
       host: attr.azure.tenant.id:host
       logbasename: attr.azure.category:logbasename:lc
-      message: replace(attr.azure.operation.name,/, )
+      message: replace(attr.azure.operation.name,/, )+attr.azure.result.type+attr.azure.properties.entity
       format: event
 
 exporters:
