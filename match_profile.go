@@ -14,6 +14,7 @@
 
 package sllogformatprocessor // import "github.com/open-telemetry/opentelemetry-collector-contrib/processor/sllogformatprocessor"
 import (
+	"encoding/json"
 	"errors"
 	"strconv"
 	"strings"
@@ -189,9 +190,20 @@ func (p *Parser) evalToken(elem string) (string, string) {
 	case CfgSourceAttr:
 		ret = evalMap(arr3[1], p.Attr)
 	case CfgSourceBody:
-		if p.Body.Type() == pcommon.ValueTypeMap {
+		switch p.Body.Type() {
+		case pcommon.ValueTypeMap:
 			ret = evalMap(arr3[1], p.Body.Map())
-		} else {
+		case pcommon.ValueTypeStr:
+			raw := make(map[string]any)
+			if json.Unmarshal([]byte(p.Body.AsString()), &raw) == nil {
+				av := pcommon.NewValueEmpty()
+				if av.SetEmptyMap().FromRaw(raw) == nil {
+					ret = evalMap(arr3[1], av.Map())
+					break
+				}
+			}
+			fallthrough
+		default:
 			ret = evalValue(arr3[1], p.Body)
 		}
 	}
