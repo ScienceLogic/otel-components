@@ -182,35 +182,39 @@ func (p *Parser) evalToken(elem string) (string, string) {
 		elem = elem[len("replace("):strings.Index(elem, ",")]
 	}
 	arr3 := strings.SplitN(elem, ".", 2)
+	id := ""
+	if len(arr3) > 1 {
+		id = arr3[1]
+	}
 	switch arr3[0] {
 	case CfgSourceLit:
-		ret = arr3[1]
+		ret = id
 	case CfgSourceRattr:
-		ret = evalMap(arr3[1], p.Rattr)
+		ret = evalMap(id, p.Rattr)
 	case CfgSourceAttr:
-		ret = evalMap(arr3[1], p.Attr)
+		ret = evalMap(id, p.Attr)
 	case CfgSourceBody:
 		switch p.Body.Type() {
 		case pcommon.ValueTypeMap:
-			ret = evalMap(arr3[1], p.Body.Map())
+			ret = evalMap(id, p.Body.Map())
 		case pcommon.ValueTypeStr:
 			raw := make(map[string]any)
-			if json.Unmarshal([]byte(p.Body.AsString()), &raw) == nil {
+			if id != "" && json.Unmarshal([]byte(p.Body.AsString()), &raw) == nil {
 				av := pcommon.NewValueEmpty()
 				if av.SetEmptyMap().FromRaw(raw) == nil {
-					ret = evalMap(arr3[1], av.Map())
+					ret = evalMap(id, av.Map())
 					break
 				}
 			}
 			fallthrough
 		default:
-			ret = evalValue(arr3[1], p.Body)
+			ret = evalValue(id, p.Body)
 		}
 	}
 	if doReplace {
 		ret = strings.Replace(ret, replaceFrom, replaceTo, -1)
 	}
-	return arr3[1], ret
+	return id, ret
 }
 
 func (p *Parser) EvalElem(elem string) (string, string) {
@@ -239,6 +243,11 @@ func (p *Parser) EvalElem(elem string) (string, string) {
 				case CfgOptionRmprefix:
 					if strings.HasPrefix(ret, arr2[1]) {
 						ret = ret[len(arr2[1]):]
+					}
+				case CfgOptionRmtail:
+					idx := strings.LastIndex(ret, arr2[1])
+					if idx > -1 {
+						ret = ret[:idx]
 					}
 				case CfgOptionAlphaNum:
 					new := ""
@@ -281,6 +290,22 @@ func (c *Config) MatchProfile(log *zap.Logger, rl plog.ResourceLogs, ils plog.Sc
 		if gen.Logbasename == "" {
 			continue
 		}
+		if profile.HttpStatus != "" {
+			_, status := parser.EvalElem(profile.HttpStatus)
+			if status == "" {
+				continue
+			}
+			sevNum := plog.SeverityNumberUnspecified
+			switch status[0] {
+			case '1', '2':
+				sevNum = plog.SeverityNumberInfo
+			case '3':
+				sevNum = plog.SeverityNumberDebug
+			case '4', '5':
+				sevNum = plog.SeverityNumberError
+			}
+			lr.SetSeverityNumber(sevNum)
+		}
 		req.Ids[id] = gen.Logbasename
 		req.Logbasename = gen.Logbasename
 		for _, label := range profile.Labels {
@@ -302,7 +327,13 @@ func (c *Config) MatchProfile(log *zap.Logger, rl plog.ResourceLogs, ils plog.Sc
 				timestamp = time.Unix(0, int64(lr.ObservedTimestamp()))
 			}
 			sevText, _ := severityMap[lr.SeverityNumber()]
-			gen.Message = "ze_tm=" + strconv.FormatInt(timestamp.UnixMilli(), 10) + ",msg=" + timestamp.UTC().Format(RFC3339Micro) + " " + sevText + " " + gen.Message
+			if len(gen.Message) > 2 && gen.Message[0] == '{' {
+				// I use 2 above because we are inserting severity with a comma after,
+				// so we expect both open & close with something inbeteen
+				gen.Message = "ze_tm=" + strconv.FormatInt(timestamp.UnixMilli(), 10) + `,msg={"severity":"` + sevText + `",` + gen.Message[1:]
+			} else {
+				gen.Message = "ze_tm=" + strconv.FormatInt(timestamp.UnixMilli(), 10) + ",msg=" + timestamp.UTC().Format(RFC3339Micro) + " " + sevText + " " + gen.Message
+			}
 		case CfgFormatContainer:
 			req.ContainerLog = true
 		}
