@@ -51,6 +51,7 @@ const (
 	CfgFormatContainer string = "container"
 	CfgFormatEvent     string = "event"
 	CfgOptionRmprefix  string = "rmprefix"
+	CfgOptionRmtail    string = "rmtail"
 	CfgOptionAlphaNum  string = "alphanum"
 	CfgOptionLc        string = "lc"
 )
@@ -76,6 +77,7 @@ var cfgFormatMap map[string]struct{} = map[string]struct{}{
 
 var cfgOptionMap map[string]struct{} = map[string]struct{}{
 	CfgOptionRmprefix: {},
+	CfgOptionRmtail:   {},
 	CfgOptionAlphaNum: {},
 	CfgOptionLc:       {},
 }
@@ -84,6 +86,7 @@ type ConfigProfile struct {
 	ServiceGroup string   `mapstructure:"service_group"`
 	Host         string   `mapstructure:"host"`
 	Logbasename  string   `mapstructure:"logbasename"`
+	HttpStatus   string   `mapstructure:"http_status"`
 	Labels       []string `mapstructure:"labels"`
 	Message      string   `mapstructure:"message"`
 	Format       string   `mapstructure:"format"`
@@ -153,6 +156,11 @@ func (cfg *Config) Validate() error {
 		}
 		if err := validateProfileElem(idx, "logbasename", profile.Logbasename, cfgSourceMap); err != nil {
 			return err
+		}
+		if profile.HttpStatus != "" {
+			if err := validateProfileElem(idx, "http_status", profile.HttpStatus, cfgSourceMap); err != nil {
+				return err
+			}
 		}
 		if err := validateProfileElem(idx, "message", profile.Message, cfgSourceMap); err != nil {
 			return err
