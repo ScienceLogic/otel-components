@@ -1,0 +1,30 @@
+receivers:
+  awscloudwatch:
+    region: us-west-2
+    logs:
+      poll_interval: 10s
+
+processors:
+  sllogformat:
+    send_batch_size: 10000
+    timeout: 5s
+    profiles:
+    - service_group: rattr.cloudwatch.log.group.name:ze_deployment_name
+      host: rattr.aws.region:host
+      logbasename: rattr.cloudwatch.log.stream:logbasename:rmprefix=kube-apiserver-:rmtail=-:alphanum:lc
+      http_status: body.responseStatus.code
+      message: body
+      format: event
+
+exporters:
+  slzebrium:
+    verbosity: detailed
+    endpoint: https://cloud.zebrium.com
+    ze_token: 0000000000000000000000000000000000000000
+
+service:
+  pipelines:
+    logs:
+      receivers: [awscloudwatch]
+      processors: [sllogformat]
+      exporters: [slzebrium]
