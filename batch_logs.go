@@ -101,6 +101,7 @@ func (bl *batchLogs) addToBatch(ld plog.Logs) {
 				if err != nil {
 					bl.log.Error("Failed to match profile",
 						zap.String("err", err.Error()))
+					bl.dumpLogRecord(rl, ils, lr)
 					return true
 				}
 				keyBytes, err := json.Marshal(req)
@@ -135,4 +136,22 @@ func (bl *batchLogs) addToBatch(ld plog.Logs) {
 		})
 		return true
 	})
+}
+
+func (bl *batchLogs) dumpLogRecord(rl plog.ResourceLogs, ils plog.ScopeLogs, lr plog.LogRecord) {
+	buf := dataBuffer{}
+	buf.logEntry("Resource SchemaURL: %s", rl.SchemaUrl())
+	buf.logAttributes("Resource attributes", rl.Resource().Attributes())
+	buf.logEntry("ScopeLogs SchemaURL: %s", ils.SchemaUrl())
+	buf.logInstrumentationScope(ils.Scope())
+	buf.logEntry("ObservedTimestamp: %s", lr.ObservedTimestamp())
+	buf.logEntry("Timestamp: %s", lr.Timestamp())
+	buf.logEntry("SeverityText: %s", lr.SeverityText())
+	buf.logEntry("SeverityNumber: %s(%d)", lr.SeverityNumber(), lr.SeverityNumber())
+	buf.logEntry("Body: %s", valueToString(lr.Body()))
+	buf.logAttributes("Attributes", lr.Attributes())
+	buf.logEntry("Trace ID: %s", lr.TraceID())
+	buf.logEntry("Span ID: %s", lr.SpanID())
+	buf.logEntry("Flags: %d", lr.Flags())
+	bl.log.Info(string(buf.buf.Bytes()))
 }
