@@ -95,7 +95,7 @@ var ops map[string]Operator = map[string]Operator{
 func nextToken(in string) (string, string, string) {
 	idx := len(in)
 	op := ""
-	for op2, _ := range ops {
+	for op2 := range ops {
 		idx2 := strings.Index(in, op2)
 		if idx2 < 0 {
 			continue
