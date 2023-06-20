@@ -149,13 +149,16 @@ func (e *timestreamExporter) pushMetrics(ctx context.Context, md pmetric.Metrics
 	if err != nil {
 		e.logger.Error("Write records failed", zap.String("Error", err.Error()))
 		// TODO:  Below is not working!!!!???????
+		e.logger.Error("Error:", zap.Any("error", err))
 		if reject, ok := err.(*types.RejectedRecordsException); ok {
+			e.logger.Error("Reject", zap.Any("reject", reject))
 			e.logger.Error(
 				"Records Rejected",
 				zap.String("ErrorCode", reject.ErrorCode()),
 				zap.String("ErrorMessage", reject.ErrorMessage()),
 			)
 		}
+		e.logger.Debug("Records:", zap.Any("records", records))
 		return err
 	} else {
 		e.logger.Info("Write records is successful")
