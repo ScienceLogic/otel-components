@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"reflect"
 )
 
 type timestreamExporter struct {
@@ -150,6 +151,7 @@ func (e *timestreamExporter) pushMetrics(ctx context.Context, md pmetric.Metrics
 		e.logger.Error("Write records failed", zap.String("Error", err.Error()))
 		// TODO:  Below is not working!!!!???????
 		e.logger.Error("Error:", zap.Any("error", err))
+		e.logger.Error("Type of Error:", zap.String("Error type", reflect.TypeOf(err).String()))
 		if reject, ok := err.(*types.RejectedRecordsException); ok {
 			e.logger.Error("Reject", zap.Any("reject", reject))
 			e.logger.Error(
