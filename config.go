@@ -91,7 +91,7 @@ func (cfg *Config) Validate() error {
 	if err := cfg.QueueSettings.Validate(); err != nil {
 		return fmt.Errorf("queue settings has invalid configuration: %w", err)
 	}
-	if _, err := url.Parse(cfg.Endpoint); cfg.Endpoint == "" || err != nil {
+	if _, err := url.ParseRequestURI(cfg.Endpoint); cfg.Endpoint == "" || err != nil {
 		return fmt.Errorf("\"endpoint\" must be a valid URL")
 	}
 	if _, ok := supportedLevels[cfg.Verbosity]; !ok {
