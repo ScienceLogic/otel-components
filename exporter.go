@@ -156,7 +156,7 @@ func (e *timestreamExporter) pushMetrics(ctx context.Context, md pmetric.Metrics
 		e.logger.Error("Error:", zap.Any("error", err))
 		e.logger.Error("Type of Error:", zap.String("Error type", reflect.TypeOf(err).String()))
 		if errors.As(err, &oe) {
-			e.logger.Error("Failed to call service: %s, operation: %s, error: %v", zap.String("service", oe.Service()), zap.String("operation", oe.Operation()), zap.Error(oe.Unwrap()))
+			e.logger.Error("Failed to call service:", ozap.String("service", oe.Service()), zap.String("operation", oe.Operation()), zap.Error(oe.Unwrap()))
 		}else {
 			// TODO:  Below is not working!!!!???????
 			if reject, ok := err.(*types.RejectedRecordsException); ok {
