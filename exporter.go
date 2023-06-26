@@ -5,6 +5,7 @@ import (
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/timestreamwrite"
 	"github.com/aws/aws-sdk-go-v2/service/timestreamwrite/types"
+	"github.com/aws/smithy-go"
 	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/pmetric"
 	"go.uber.org/zap"
@@ -12,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 	"reflect"
+	"errors"
 )
 
 type timestreamExporter struct {
@@ -132,6 +134,7 @@ func (e *timestreamExporter) convertMetricsToRecords(md pmetric.Metrics) []types
 	return records
 }
 
+
 // main entrypoint for metrics exporting
 func (e *timestreamExporter) pushMetrics(ctx context.Context, md pmetric.Metrics) error {
 	e.logger.Info("Starting push metrics...")
@@ -147,18 +150,23 @@ func (e *timestreamExporter) pushMetrics(ctx context.Context, md pmetric.Metrics
 	writeOut, err := e.writeSession.WriteRecords(ctx, writeRecordsInput)
 	e.logger.Info("Timestream Write Status", zap.Any("Write Status", writeOut))
 
+	var oe *smithy.OperationError
 	if err != nil {
 		e.logger.Error("Write records failed", zap.String("Error", err.Error()))
-		// TODO:  Below is not working!!!!???????
 		e.logger.Error("Error:", zap.Any("error", err))
 		e.logger.Error("Type of Error:", zap.String("Error type", reflect.TypeOf(err).String()))
-		if reject, ok := err.(*types.RejectedRecordsException); ok {
-			e.logger.Error("Reject", zap.Any("reject", reject))
-			e.logger.Error(
-				"Records Rejected",
-				zap.String("ErrorCode", reject.ErrorCode()),
-				zap.String("ErrorMessage", reject.ErrorMessage()),
-			)
+		if errors.As(err, &oe) {
+			e.logger.Error("Failed to call service: %s, operation: %s, error: %v", zap.String("service", oe.Service()), zap.String("operation", oe.Operation()), zap.Error(oe.Unwrap()))
+		}else {
+			// TODO:  Below is not working!!!!???????
+			if reject, ok := err.(*types.RejectedRecordsException); ok {
+				e.logger.Error("Reject", zap.Any("reject", reject))
+				e.logger.Error(
+					"Records Rejected",
+					zap.String("ErrorCode", reject.ErrorCode()),
+					zap.String("ErrorMessage", reject.ErrorMessage()),
+				)
+			}
 		}
 		e.logger.Debug("Records:", zap.Any("records", records))
 		return err
