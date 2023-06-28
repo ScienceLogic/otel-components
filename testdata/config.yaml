@@ -1,3 +1,12 @@
 timeout: 10s
 send_batch_size: 10000
 send_batch_max_size: 11000
+profiles:
+- service_group: lit.default:ze_deployment_name # windows event log
+  host: body.computer:host
+  logbasename: body.provider.name:logbasename:rmprefix=Microsoft-Windows-:alphanum:lc
+  labels:
+  - body.channel:win_channel
+  - body.keywords:win_keywords
+  message: body.message||body.event_data||body.keywords
+  format: event

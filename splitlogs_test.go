@@ -15,152 +15,104 @@
 package sllogformatprocessor
 
 import (
+	"fmt"
 	"testing"
-	//"github.com/stretchr/testify/assert"
-	//"go.opentelemetry.io/collector/internal/testdata"
-	//"go.opentelemetry.io/collector/pdata/plog"
+
+	"github.com/stretchr/testify/assert"
+
+	"github.sciencelogic.com/product-engineering/ze-otel/sllogformatprocessor/internal/testdata"
+	"go.opentelemetry.io/collector/pdata/plog"
 )
 
 func TestSplitLogs_noop(t *testing.T) {
-	/*
-		td := testdata.GenerateLogs(20)
-		splitSize := 40
-		split := splitLogs(splitSize, td)
-		assert.Equal(t, td, split)
+	td := testdata.GenerateLogs(20)
+	rl := td.ResourceLogs().At(0)
+	splitSize := 40
+	split := splitLogs(splitSize, rl)
+	assert.Equal(t, rl, split)
 
-		i := 0
-		td.ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().RemoveIf(func(_ plog.LogRecord) bool {
-			i++
-			return i > 5
-		})
-		assert.EqualValues(t, td, split)
-	*/
+	i := 0
+	rl.ScopeLogs().At(0).LogRecords().RemoveIf(func(_ plog.LogRecord) bool {
+		i++
+		return i > 5
+	})
+	assert.EqualValues(t, rl, split)
 }
 
 func TestSplitLogs(t *testing.T) {
-	/*
-		ld := testdata.GenerateLogs(20)
-		logs := ld.ResourceLogs().At(0).ScopeLogs().At(0).LogRecords()
-		for i := 0; i < logs.Len(); i++ {
-			logs.At(i).SetSeverityText(getTestLogSeverityText(0, i))
-		}
-		cp := plog.NewLogs()
-		cpLogs := cp.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords()
-		cpLogs.EnsureCapacity(5)
-		ld.ResourceLogs().At(0).Resource().CopyTo(
-			cp.ResourceLogs().At(0).Resource())
-		ld.ResourceLogs().At(0).ScopeLogs().At(0).Scope().CopyTo(
-			cp.ResourceLogs().At(0).ScopeLogs().At(0).Scope())
-		logs.At(0).CopyTo(cpLogs.AppendEmpty())
-		logs.At(1).CopyTo(cpLogs.AppendEmpty())
-		logs.At(2).CopyTo(cpLogs.AppendEmpty())
-		logs.At(3).CopyTo(cpLogs.AppendEmpty())
-		logs.At(4).CopyTo(cpLogs.AppendEmpty())
+	ld := testdata.GenerateLogs(20)
+	logs := ld.ResourceLogs().At(0).ScopeLogs().At(0).LogRecords()
+	for i := 0; i < logs.Len(); i++ {
+		logs.At(i).SetSeverityText(getTestLogSeverityText(0, i))
+	}
+	cp := plog.NewLogs()
+	cpLogs := cp.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords()
+	cpLogs.EnsureCapacity(5)
+	crl := cp.ResourceLogs().At(0)
+	rl := ld.ResourceLogs().At(0)
+	rl.Resource().CopyTo(crl.Resource())
+	rl.ScopeLogs().At(0).Scope().CopyTo(crl.ScopeLogs().At(0).Scope())
+	logs.At(0).CopyTo(cpLogs.AppendEmpty())
+	logs.At(1).CopyTo(cpLogs.AppendEmpty())
+	logs.At(2).CopyTo(cpLogs.AppendEmpty())
+	logs.At(3).CopyTo(cpLogs.AppendEmpty())
+	logs.At(4).CopyTo(cpLogs.AppendEmpty())
 
-		splitSize := 5
-		split := splitLogs(splitSize, ld)
-		assert.Equal(t, splitSize, split.LogRecordCount())
-		assert.Equal(t, cp, split)
-		assert.Equal(t, 15, ld.LogRecordCount())
-		assert.Equal(t, "test-log-int-0-0", split.ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().At(0).SeverityText())
-		assert.Equal(t, "test-log-int-0-4", split.ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().At(4).SeverityText())
+	splitSize := 5
+	split := splitLogs(splitSize, rl)
+	assert.Equal(t, splitSize, resourceLRC(split))
+	assert.Equal(t, crl, split)
+	assert.Equal(t, 15, resourceLRC(rl))
+	assert.Equal(t, "test-log-int-0-0", split.ScopeLogs().At(0).LogRecords().At(0).SeverityText())
+	assert.Equal(t, "test-log-int-0-4", split.ScopeLogs().At(0).LogRecords().At(4).SeverityText())
 
-		split = splitLogs(splitSize, ld)
-		assert.Equal(t, 10, ld.LogRecordCount())
-		assert.Equal(t, "test-log-int-0-5", split.ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().At(0).SeverityText())
-		assert.Equal(t, "test-log-int-0-9", split.ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().At(4).SeverityText())
+	split = splitLogs(splitSize, rl)
+	assert.Equal(t, 10, resourceLRC(rl))
+	assert.Equal(t, "test-log-int-0-5", split.ScopeLogs().At(0).LogRecords().At(0).SeverityText())
+	assert.Equal(t, "test-log-int-0-9", split.ScopeLogs().At(0).LogRecords().At(4).SeverityText())
 
-		split = splitLogs(splitSize, ld)
-		assert.Equal(t, 5, ld.LogRecordCount())
-		assert.Equal(t, "test-log-int-0-10", split.ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().At(0).SeverityText())
-		assert.Equal(t, "test-log-int-0-14", split.ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().At(4).SeverityText())
+	split = splitLogs(splitSize, rl)
+	assert.Equal(t, 5, resourceLRC(rl))
+	assert.Equal(t, "test-log-int-0-10", split.ScopeLogs().At(0).LogRecords().At(0).SeverityText())
+	assert.Equal(t, "test-log-int-0-14", split.ScopeLogs().At(0).LogRecords().At(4).SeverityText())
 
-		split = splitLogs(splitSize, ld)
-		assert.Equal(t, 5, ld.LogRecordCount())
-		assert.Equal(t, "test-log-int-0-15", split.ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().At(0).SeverityText())
-		assert.Equal(t, "test-log-int-0-19", split.ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().At(4).SeverityText())
-	*/
-}
-
-func TestSplitLogsMultipleResourceLogs(t *testing.T) {
-	/*
-		td := testdata.GenerateLogs(20)
-		logs := td.ResourceLogs().At(0).ScopeLogs().At(0).LogRecords()
-		for i := 0; i < logs.Len(); i++ {
-			logs.At(i).SetSeverityText(getTestLogSeverityText(0, i))
-		}
-		// add second index to resource logs
-		testdata.GenerateLogs(20).
-			ResourceLogs().At(0).CopyTo(td.ResourceLogs().AppendEmpty())
-		logs = td.ResourceLogs().At(1).ScopeLogs().At(0).LogRecords()
-		for i := 0; i < logs.Len(); i++ {
-			logs.At(i).SetSeverityText(getTestLogSeverityText(1, i))
-		}
-
-		splitSize := 5
-		split := splitLogs(splitSize, td)
-		assert.Equal(t, splitSize, split.LogRecordCount())
-		assert.Equal(t, 35, td.LogRecordCount())
-		assert.Equal(t, "test-log-int-0-0", split.ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().At(0).SeverityText())
-		assert.Equal(t, "test-log-int-0-4", split.ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().At(4).SeverityText())
-	*/
-}
-
-func TestSplitLogsMultipleResourceLogs_split_size_greater_than_log_size(t *testing.T) {
-	/*
-		td := testdata.GenerateLogs(20)
-		logs := td.ResourceLogs().At(0).ScopeLogs().At(0).LogRecords()
-		for i := 0; i < logs.Len(); i++ {
-			logs.At(i).SetSeverityText(getTestLogSeverityText(0, i))
-		}
-		// add second index to resource logs
-		testdata.GenerateLogs(20).
-			ResourceLogs().At(0).CopyTo(td.ResourceLogs().AppendEmpty())
-		logs = td.ResourceLogs().At(1).ScopeLogs().At(0).LogRecords()
-		for i := 0; i < logs.Len(); i++ {
-			logs.At(i).SetSeverityText(getTestLogSeverityText(1, i))
-		}
-
-		splitSize := 25
-		split := splitLogs(splitSize, td)
-		assert.Equal(t, splitSize, split.LogRecordCount())
-		assert.Equal(t, 40-splitSize, td.LogRecordCount())
-		assert.Equal(t, 1, td.ResourceLogs().Len())
-		assert.Equal(t, "test-log-int-0-0", split.ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().At(0).SeverityText())
-		assert.Equal(t, "test-log-int-0-19", split.ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().At(19).SeverityText())
-		assert.Equal(t, "test-log-int-1-0", split.ResourceLogs().At(1).ScopeLogs().At(0).LogRecords().At(0).SeverityText())
-		assert.Equal(t, "test-log-int-1-4", split.ResourceLogs().At(1).ScopeLogs().At(0).LogRecords().At(4).SeverityText())
-	*/
+	split = splitLogs(splitSize, rl)
+	assert.Equal(t, 5, resourceLRC(rl))
+	assert.Equal(t, "test-log-int-0-15", split.ScopeLogs().At(0).LogRecords().At(0).SeverityText())
+	assert.Equal(t, "test-log-int-0-19", split.ScopeLogs().At(0).LogRecords().At(4).SeverityText())
 }
 
 func TestSplitLogsMultipleILL(t *testing.T) {
-	/*
-		td := testdata.GenerateLogs(20)
-		logs := td.ResourceLogs().At(0).ScopeLogs().At(0).LogRecords()
-		for i := 0; i < logs.Len(); i++ {
-			logs.At(i).SetSeverityText(getTestLogSeverityText(0, i))
-		}
-		// add second index to ILL
-		td.ResourceLogs().At(0).ScopeLogs().At(0).
-			CopyTo(td.ResourceLogs().At(0).ScopeLogs().AppendEmpty())
-		logs = td.ResourceLogs().At(0).ScopeLogs().At(1).LogRecords()
-		for i := 0; i < logs.Len(); i++ {
-			logs.At(i).SetSeverityText(getTestLogSeverityText(1, i))
-		}
+	td := testdata.GenerateLogs(20)
+	rl := td.ResourceLogs().At(0)
+	logs := rl.ScopeLogs().At(0).LogRecords()
+	for i := 0; i < logs.Len(); i++ {
+		logs.At(i).SetSeverityText(getTestLogSeverityText(0, i))
+	}
+	// add second index to ILL
+	rl.ScopeLogs().At(0).
+		CopyTo(rl.ScopeLogs().AppendEmpty())
+	logs = rl.ScopeLogs().At(1).LogRecords()
+	for i := 0; i < logs.Len(); i++ {
+		logs.At(i).SetSeverityText(getTestLogSeverityText(1, i))
+	}
 
-		// add third index to ILL
-		td.ResourceLogs().At(0).ScopeLogs().At(0).
-			CopyTo(td.ResourceLogs().At(0).ScopeLogs().AppendEmpty())
-		logs = td.ResourceLogs().At(0).ScopeLogs().At(2).LogRecords()
-		for i := 0; i < logs.Len(); i++ {
-			logs.At(i).SetSeverityText(getTestLogSeverityText(2, i))
-		}
+	// add third index to ILL
+	rl.ScopeLogs().At(0).
+		CopyTo(rl.ScopeLogs().AppendEmpty())
+	logs = rl.ScopeLogs().At(2).LogRecords()
+	for i := 0; i < logs.Len(); i++ {
+		logs.At(i).SetSeverityText(getTestLogSeverityText(2, i))
+	}
 
-		splitSize := 40
-		split := splitLogs(splitSize, td)
-		assert.Equal(t, splitSize, split.LogRecordCount())
-		assert.Equal(t, 20, td.LogRecordCount())
-		assert.Equal(t, "test-log-int-0-0", split.ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().At(0).SeverityText())
-		assert.Equal(t, "test-log-int-0-4", split.ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().At(4).SeverityText())
-	*/
+	splitSize := 40
+	split := splitLogs(splitSize, rl)
+	assert.Equal(t, splitSize, resourceLRC(split))
+	assert.Equal(t, 20, resourceLRC(rl))
+	assert.Equal(t, "test-log-int-0-0", split.ScopeLogs().At(0).LogRecords().At(0).SeverityText())
+	assert.Equal(t, "test-log-int-0-4", split.ScopeLogs().At(0).LogRecords().At(4).SeverityText())
+}
+
+func getTestLogSeverityText(requestNum, index int) string {
+	return fmt.Sprintf("test-log-int-%d-%d", requestNum, index)
 }
