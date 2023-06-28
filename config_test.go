@@ -45,6 +45,19 @@ func TestUnmarshalConfig(t *testing.T) {
 			SendBatchSize:    uint32(10000),
 			SendBatchMaxSize: uint32(11000),
 			Timeout:          time.Second * 10,
+			Profiles: []ConfigProfile{
+				ConfigProfile{
+					ServiceGroup: "lit.default:ze_deployment_name",
+					Host:         "body.computer:host",
+					Logbasename:  "body.provider.name:logbasename:rmprefix=Microsoft-Windows-:alphanum:lc",
+					Labels: []string{
+						"body.channel:win_channel",
+						"body.keywords:win_keywords",
+					},
+					Message: "body.message||body.event_data||body.keywords",
+					Format:  "event",
+				},
+			},
 		}, cfg)
 }
 
@@ -62,13 +75,25 @@ func TestValidateConfig_ValidBatchSizes(t *testing.T) {
 		SendBatchMaxSize: 1000,
 	}
 	assert.NoError(t, cfg.Validate())
-
 }
 
 func TestValidateConfig_InvalidBatchSize(t *testing.T) {
 	cfg := &Config{
 		SendBatchSize:    1000,
 		SendBatchMaxSize: 100,
+	}
+	assert.Error(t, cfg.Validate())
+}
+
+func TestValidateConfig_ServiceGroup(t *testing.T) {
+	cfg := &Config{
+		SendBatchSize:    100,
+		SendBatchMaxSize: 1000,
+		Profiles: []ConfigProfile{
+			ConfigProfile{
+				ServiceGroup: "bad.default:ze_deployment_name",
+			},
+		},
 	}
 	assert.Error(t, cfg.Validate())
 }
