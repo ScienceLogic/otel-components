@@ -46,7 +46,7 @@ func TestUnmarshalConfig(t *testing.T) {
 			SendBatchMaxSize: uint32(11000),
 			Timeout:          time.Second * 10,
 			Profiles: []ConfigProfile{
-				ConfigProfile{
+				{
 					ServiceGroup: "lit.default:ze_deployment_name",
 					Host:         "body.computer:host",
 					Logbasename:  "body.provider.name:logbasename:rmprefix=Microsoft-Windows-:alphanum:lc",
@@ -90,7 +90,7 @@ func TestValidateConfig_ServiceGroup(t *testing.T) {
 		SendBatchSize:    100,
 		SendBatchMaxSize: 1000,
 		Profiles: []ConfigProfile{
-			ConfigProfile{
+			{
 				ServiceGroup: "bad.default:ze_deployment_name",
 			},
 		},
