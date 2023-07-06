@@ -244,6 +244,10 @@ func (p *Parser) EvalElem(elem string) (string, string) {
 					if strings.HasPrefix(ret, arr2[1]) {
 						ret = ret[len(arr2[1]):]
 					}
+				case CfgOptionRmsuffix:
+					if strings.HasSuffix(ret, arr2[1]) {
+						ret = ret[:len(ret)-len(arr2[1])]
+					}
 				case CfgOptionRmtail:
 					idx := strings.LastIndex(ret, arr2[1])
 					if idx > -1 {

@@ -51,6 +51,7 @@ const (
 	CfgFormatContainer string = "container"
 	CfgFormatEvent     string = "event"
 	CfgOptionRmprefix  string = "rmprefix"
+	CfgOptionRmsuffix  string = "rmsuffix"
 	CfgOptionRmtail    string = "rmtail"
 	CfgOptionAlphaNum  string = "alphanum"
 	CfgOptionLc        string = "lc"
@@ -77,6 +78,7 @@ var cfgFormatMap map[string]struct{} = map[string]struct{}{
 
 var cfgOptionMap map[string]struct{} = map[string]struct{}{
 	CfgOptionRmprefix: {},
+	CfgOptionRmsuffix: {},
 	CfgOptionRmtail:   {},
 	CfgOptionAlphaNum: {},
 	CfgOptionLc:       {},

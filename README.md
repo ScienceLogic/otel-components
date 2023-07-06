@@ -46,6 +46,8 @@ Replacement keys are optional for labels which default to the last source key.
 The following options are supported:
 
 - `rmprefix`: To remove a prefix if matched, e.g. `rmprefix=Microsoft-Windows-`
+- `rmsuffix`: To remove a suffix if matched, e.g. `rmsuffix=.log`
+- `rmtail`: To remove everything after the last match, e.g. `rmtail=-`
 - `alphanum`: Filter out all characters that are not letters or numbers
 - `lc`: Transform to lowercase
 
