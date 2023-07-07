@@ -157,7 +157,7 @@ spec:
     spec:
       containers:
       - name: otel-collector
-        image: 872295030327.dkr.ecr.us-west-2.amazonaws.com/zebrium-otel-collector:0.0.0-98f8d10
+        image: 872295030327.dkr.ecr.us-west-2.amazonaws.com/zebrium-otel-collector:0.0.0-033df72
         resources:
           limits:
             cpu: 100m
