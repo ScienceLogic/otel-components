@@ -80,6 +80,34 @@ var severityMap map[plog.SeverityNumber]string = map[plog.SeverityNumber]string{
 	plog.SeverityNumberFatal4:      "FATAL",
 }
 
+var sevTextMap map[string]plog.SeverityNumber = map[string]plog.SeverityNumber{
+	"TRACE":         plog.SeverityNumberTrace,
+	"DEBUG":         plog.SeverityNumberDebug,
+	"7":             plog.SeverityNumberDebug,
+	"INFORMATIONAL": plog.SeverityNumberInfo,
+	"INFO":          plog.SeverityNumberInfo,
+	"NORMAL":        plog.SeverityNumberInfo,
+	"6":             plog.SeverityNumberInfo,
+	"WARNING":       plog.SeverityNumberWarn,
+	"WARN":          plog.SeverityNumberWarn,
+	"NOTICE":        plog.SeverityNumberWarn,
+	"5":             plog.SeverityNumberWarn,
+	"4":             plog.SeverityNumberWarn,
+	"ERROR":         plog.SeverityNumberError,
+	"ERR":           plog.SeverityNumberError,
+	"3":             plog.SeverityNumberError,
+	"FATAL":         plog.SeverityNumberFatal,
+	"EMERGENCY":     plog.SeverityNumberFatal,
+	"EMERG":         plog.SeverityNumberFatal,
+	"PANIC":         plog.SeverityNumberFatal,
+	"ALERT":         plog.SeverityNumberFatal,
+	"CRITICAL":      plog.SeverityNumberFatal,
+	"CRIT":          plog.SeverityNumberFatal,
+	"2":             plog.SeverityNumberFatal,
+	"1":             plog.SeverityNumberFatal,
+	"0":             plog.SeverityNumberFatal,
+}
+
 type Operator func(string, string) string
 
 var ops map[string]Operator = map[string]Operator{
@@ -112,7 +140,7 @@ func evalValue(component string, val pcommon.Value) string {
 	var ret string
 	switch val.Type() {
 	case pcommon.ValueTypeMap:
-		return ""
+		return val.AsString()
 	case pcommon.ValueTypeSlice:
 		for idx := 0; idx < val.Slice().Len(); idx++ {
 			val2 := val.Slice().At(idx)
@@ -141,13 +169,15 @@ func evalMap(elem string, in pcommon.Map) string {
 		return ""
 	}
 	path := ""
+	var val pcommon.Value
+	var ok bool
 	for idx, key := range arr {
 		if path == "" {
 			path = key
 		} else {
 			path += "." + key
 		}
-		val, ok := in.Get(path)
+		val, ok = in.Get(path)
 		if ok {
 			if val.Type() == pcommon.ValueTypeMap {
 				in = val.Map()
@@ -159,6 +189,9 @@ func evalMap(elem string, in pcommon.Map) string {
 			}
 			return evalValue(elem, val)
 		}
+	}
+	if path == "" {
+		return val.AsString()
 	}
 	return ""
 }
@@ -196,7 +229,11 @@ func (p *Parser) evalToken(elem string) (string, string) {
 	case CfgSourceBody:
 		switch p.Body.Type() {
 		case pcommon.ValueTypeMap:
-			ret = evalMap(id, p.Body.Map())
+			if id != "" {
+				ret = evalMap(id, p.Body.Map())
+			} else {
+				ret = p.Body.AsString()
+			}
 		case pcommon.ValueTypeStr:
 			raw := make(map[string]any)
 			if id != "" && json.Unmarshal([]byte(p.Body.AsString()), &raw) == nil {
@@ -294,19 +331,25 @@ func (c *Config) MatchProfile(log *zap.Logger, rl plog.ResourceLogs, ils plog.Sc
 		if gen.Logbasename == "" {
 			continue
 		}
-		if profile.HttpStatus != "" {
-			_, status := parser.EvalElem(profile.HttpStatus)
-			if status == "" {
+		if profile.Severity != "" {
+			_, sevText := parser.EvalElem(profile.Severity)
+			if sevText == "" {
 				continue
 			}
+			sevText = strings.ToUpper(sevText)
 			sevNum := plog.SeverityNumberUnspecified
-			switch status[0] {
-			case '1', '2':
-				sevNum = plog.SeverityNumberInfo
-			case '3':
-				sevNum = plog.SeverityNumberDebug
-			case '4', '5':
-				sevNum = plog.SeverityNumberError
+			sevNum, _ = sevTextMap[sevText]
+			if sevNum == plog.SeverityNumberUnspecified &&
+				len(sevText) == 3 {
+				// Interpret as HTTP status
+				switch sevText[0] {
+				case '1', '2':
+					sevNum = plog.SeverityNumberInfo
+				case '3':
+					sevNum = plog.SeverityNumberDebug
+				case '4', '5':
+					sevNum = plog.SeverityNumberError
+				}
 			}
 			lr.SetSeverityNumber(sevNum)
 		}

@@ -20,6 +20,7 @@ requires the following attributes:
 - `service_group`: Domain of anomaly correlation
 - `host`: Host or computer name
 - `logbasename`: Application in lowercase, e.g. postgres
+- `severity`: [OPTIONAL] Location to find severity value
 
 Additional optional attributes can be configured as `labels`.
 These attributes can be derived from the following sources in the

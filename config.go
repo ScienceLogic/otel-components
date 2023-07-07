@@ -88,7 +88,7 @@ type ConfigProfile struct {
 	ServiceGroup string   `mapstructure:"service_group"`
 	Host         string   `mapstructure:"host"`
 	Logbasename  string   `mapstructure:"logbasename"`
-	HttpStatus   string   `mapstructure:"http_status"`
+	Severity     string   `mapstructure:"severity"`
 	Labels       []string `mapstructure:"labels"`
 	Message      string   `mapstructure:"message"`
 	Format       string   `mapstructure:"format"`
@@ -159,8 +159,8 @@ func (cfg *Config) Validate() error {
 		if err := validateProfileElem(idx, "logbasename", profile.Logbasename, cfgSourceMap); err != nil {
 			return err
 		}
-		if profile.HttpStatus != "" {
-			if err := validateProfileElem(idx, "http_status", profile.HttpStatus, cfgSourceMap); err != nil {
+		if profile.Severity != "" {
+			if err := validateProfileElem(idx, "severity", profile.Severity, cfgSourceMap); err != nil {
 				return err
 			}
 		}
