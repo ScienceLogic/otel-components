@@ -12,7 +12,7 @@ processors:
     - service_group: rattr.cloudwatch.log.group.name:ze_deployment_name
       host: rattr.aws.region:host
       logbasename: rattr.cloudwatch.log.stream:logbasename:rmprefix=kube-apiserver-:rmtail=-:alphanum:lc
-      http_status: body.responseStatus.code
+      severity: body.responseStatus.code
       message: body
       format: event
 
