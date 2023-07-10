@@ -1,4 +1,4 @@
-module code.eng.sciencelogic.com/ae/cloud-edge-otc/awstimestreamexporter
+module code.eng.sciencelogic.com/ae/otc/awstimestreamexporter
 
 go 1.19
 
