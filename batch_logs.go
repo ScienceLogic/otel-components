@@ -16,7 +16,9 @@ package sllogformatprocessor // import "github.com/open-telemetry/opentelemetry-
 
 import (
 	"context"
+	"crypto/sha1"
 	"encoding/json"
+	"fmt"
 
 	"go.uber.org/zap"
 
@@ -110,10 +112,21 @@ func (bl *batchLogs) addToBatch(ld plog.Logs) {
 						zap.String("err", err.Error()))
 					return true
 				}
-				key := string(keyBytes)
+				h := sha1.New()
+				h.Write(keyBytes)
+				rlAttr := rl.Resource().Attributes()
+				keyBytes, err = json.Marshal(rlAttr.AsRaw())
+				if err != nil {
+					bl.log.Error("Field to marshal resource attributes",
+						zap.String("err", err.Error()))
+					return true
+				}
+				h.Write(keyBytes)
+				key := fmt.Sprintf("%x", h.Sum(nil))
 				dest, ok := bl.logData[key]
 				if !ok {
 					dest = plog.NewResourceLogs()
+					rlAttr.CopyTo(dest.Resource().Attributes())
 					dest.Resource().Attributes().PutStr("sl_service_group", gen.ServiceGroup)
 					dest.Resource().Attributes().PutStr("sl_host", gen.Host)
 					dest.Resource().Attributes().PutStr("sl_logbasename", req.Logbasename)
