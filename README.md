@@ -39,7 +39,7 @@ Keys can be surrounded by multiple operators:
 
 - `replace(<key>,str1,str2)`: Replace str1 with str2 in the result
 - `regexp(<key>,<exp>)`: Replace with concatination of golang regexp captures  
-\ and : must be escaped with \, e.g. ^([^\:]*)\:.*$ returns all before colon
+`\` and `:` must be escaped with `\`, e.g. `^([^\:]*)\:.*$` returns all before colon
 - `<key1>+<key2>`: Append the result of key1 with the result of key2
 - `<key1>||<key2>`: Result of key1 or, if empty, the result of key2
 
