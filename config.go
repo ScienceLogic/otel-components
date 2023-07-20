@@ -105,8 +105,32 @@ func keysForMap(mymap map[string]struct{}) []string {
 	return keys
 }
 
+func Split(s string, sep rune) []string {
+	ret := []string{}
+	var runes []rune
+	inEscape := false
+	for _, r := range s {
+		switch {
+		case inEscape:
+			inEscape = false
+			fallthrough
+		default:
+			runes = append(runes, r)
+		case r == '\\':
+			inEscape = true
+		case r == sep:
+			ret = append(ret, string(runes))
+			runes = runes[:0]
+		}
+	}
+	if len(runes) > 0 {
+		ret = append(ret, string(runes))
+	}
+	return ret
+}
+
 func validateProfileElem(idx int, name, str string, cfgMap map[string]struct{}) error {
-	arr := strings.Split(str, ":")
+	arr := Split(str, ':')
 	if len(arr) < 1 || len(arr[0]) < 1 {
 		return fmt.Errorf("profile %d missing %s", idx, name)
 	}
@@ -115,19 +139,16 @@ func validateProfileElem(idx int, name, str string, cfgMap map[string]struct{}) 
 		idx1 := strings.Index(elem, "(")
 		prefix := elem[:idx1]
 		idx2 := strings.Index(elem, ",")
-		if idx2 < 0 {
-			return fmt.Errorf("profile %d invalid value %s for %s, %s requires arguments", idx, arr[0], name, prefix)
-		}
-		elem = elem[len(prefix)+1 : idx2]
-		if len(elem) < 1 {
+		if idx2 < 0 || idx2 >= len(elem)-2 { // not found or no text after comma
 			return fmt.Errorf("profile %d invalid value %s for %s, %s requires arguments", idx, arr[0], name, prefix)
 		}
 		if prefix == "regexp" {
-			_, err := regexp.Compile(elem)
+			_, err := regexp.Compile(elem[idx2+1 : len(elem)-1])
 			if err != nil {
 				return fmt.Errorf("profile %d invalid value %s for %s, %s expression invalid", idx, arr[0], name, prefix)
 			}
 		}
+		elem = elem[len(prefix)+1 : idx2]
 	}
 	arr3 := strings.SplitN(elem, ".", 2)
 	if len(arr3) < 1 || len(arr3[0]) < 1 {

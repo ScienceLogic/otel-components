@@ -217,10 +217,9 @@ func (p *Parser) evalToken(elem string) (string, string) {
 	}
 	doRegexp := strings.HasPrefix(elem, "regexp(") && elem[len(elem)-1] == ')'
 	if doRegexp {
-		replaceFrom = elem[len("regexp(") : len(elem)-1]
-		arr4 := strings.Split(replaceFrom, ",")
-		replaceFrom = arr4[1]
-		elem = elem[len("regexp("):strings.Index(elem, ",")]
+		idx2 := strings.Index(elem, ",")
+		replaceFrom = elem[idx2+1 : len(elem)-1]
+		elem = elem[len("regexp("):idx2]
 	}
 	arr3 := strings.SplitN(elem, ".", 2)
 	id := ""
@@ -271,7 +270,7 @@ func (p *Parser) evalToken(elem string) (string, string) {
 
 func (p *Parser) EvalElem(elem string) (string, string) {
 	var id, ret, ret2, op string
-	arr := strings.Split(elem, ":")
+	arr := Split(elem, ':')
 	text := arr[0]
 	for len(text) > 0 {
 		var token2, op2 string
