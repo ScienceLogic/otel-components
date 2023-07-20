@@ -38,6 +38,7 @@ The syntax for associating metadata looks like:
 Keys can be surrounded by multiple operators:
 
 - `replace(<key>,str1,str2)`: Will replace str1 with str2 in the result
+- `regexp(<key>,<exp>)`: Will replace with concatination of golang regexp captures
 - `<key1>+<key2>`: Will append the result of key1 with the result of key2
 - `<key1>||<key2>`: Will return the result of key1 or, if empty, the result of key2
 

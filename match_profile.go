@@ -16,6 +16,7 @@ package sllogformatprocessor // import "github.com/open-telemetry/opentelemetry-
 import (
 	"encoding/json"
 	"errors"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -206,13 +207,20 @@ func (p *Parser) evalToken(elem string) (string, string) {
 	var ret, replaceFrom, replaceTo string
 	doReplace := strings.HasPrefix(elem, "replace(") && elem[len(elem)-1] == ')'
 	if doReplace {
-		replaceFrom = elem[len("replace("):]
+		replaceFrom = elem[len("replace(") : len(elem)-1]
 		arr4 := strings.Split(replaceFrom, ",")
 		replaceFrom = arr4[1]
 		if len(arr4) > 2 {
 			replaceTo = arr4[2][:len(arr4[2])-1]
 		}
 		elem = elem[len("replace("):strings.Index(elem, ",")]
+	}
+	doRegexp := strings.HasPrefix(elem, "regexp(") && elem[len(elem)-1] == ')'
+	if doRegexp {
+		replaceFrom = elem[len("regexp(") : len(elem)-1]
+		arr4 := strings.Split(replaceFrom, ",")
+		replaceFrom = arr4[1]
+		elem = elem[len("regexp("):strings.Index(elem, ",")]
 	}
 	arr3 := strings.SplitN(elem, ".", 2)
 	id := ""
@@ -250,6 +258,13 @@ func (p *Parser) evalToken(elem string) (string, string) {
 	}
 	if doReplace {
 		ret = strings.Replace(ret, replaceFrom, replaceTo, -1)
+	} else if doRegexp {
+		r := regexp.MustCompile(replaceFrom)
+		arr := r.FindStringSubmatch(ret)
+		ret = ""
+		if len(arr) > 1 {
+			ret = strings.Join(arr[1:], "")
+		}
 	}
 	return id, ret
 }

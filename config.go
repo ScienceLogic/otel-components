@@ -17,6 +17,7 @@ package sllogformatprocessor // import "github.com/open-telemetry/opentelemetry-
 import (
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
@@ -110,14 +111,22 @@ func validateProfileElem(idx int, name, str string, cfgMap map[string]struct{}) 
 		return fmt.Errorf("profile %d missing %s", idx, name)
 	}
 	elem := arr[0]
-	if strings.HasPrefix(elem, "replace(") {
+	if strings.HasPrefix(elem, "replace(") || strings.HasPrefix(elem, "regexp(") {
+		idx1 := strings.Index(elem, "(")
+		prefix := elem[:idx1]
 		idx2 := strings.Index(elem, ",")
 		if idx2 < 0 {
-			return fmt.Errorf("profile %d invalid value %s for %s, replace requires arguments", idx, arr[0], name)
+			return fmt.Errorf("profile %d invalid value %s for %s, %s requires arguments", idx, arr[0], name, prefix)
 		}
-		elem = elem[len("replace("):idx2]
+		elem = elem[len(prefix)+1 : idx2]
 		if len(elem) < 1 {
-			return fmt.Errorf("profile %d invalid value %s for %s, replace requires arguments", idx, arr[0], name)
+			return fmt.Errorf("profile %d invalid value %s for %s, %s requires arguments", idx, arr[0], name, prefix)
+		}
+		if prefix == "regexp" {
+			_, err := regexp.Compile(elem)
+			if err != nil {
+				return fmt.Errorf("profile %d invalid value %s for %s, %s expression invalid", idx, arr[0], name, prefix)
+			}
 		}
 	}
 	arr3 := strings.SplitN(elem, ".", 2)
