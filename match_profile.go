@@ -300,7 +300,11 @@ func (p *Parser) EvalElem(attribute *ConfigAttribute) (string, string) {
 	if attribute == nil {
 		return "", ""
 	}
-	return p.evalExp(attribute.Exp)
+	id, ret := p.evalExp(attribute.Exp)
+	if attribute.Rename != "" {
+		id = attribute.Rename
+	}
+	return id, ret
 }
 
 type ConfigResult struct {

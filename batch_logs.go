@@ -106,16 +106,16 @@ func (bl *batchLogs) addToBatch(ld plog.Logs) {
 					bl.dumpLogRecord(rl, ils, lr)
 					return true
 				}
-				keyBytes, err := json.Marshal(req)
+				reqBytes, err := json.Marshal(req)
 				if err != nil {
 					bl.log.Error("Field to marshal metadata",
 						zap.String("err", err.Error()))
 					return true
 				}
 				h := sha1.New()
-				h.Write(keyBytes)
+				h.Write(reqBytes)
 				rlAttr := rl.Resource().Attributes()
-				keyBytes, err = json.Marshal(rlAttr.AsRaw())
+				keyBytes, err := json.Marshal(rlAttr.AsRaw())
 				if err != nil {
 					bl.log.Error("Field to marshal resource attributes",
 						zap.String("err", err.Error()))
@@ -131,7 +131,7 @@ func (bl *batchLogs) addToBatch(ld plog.Logs) {
 					dest.Resource().Attributes().PutStr("sl_host", gen.Host)
 					dest.Resource().Attributes().PutStr("sl_logbasename", req.Logbasename)
 					dest.Resource().Attributes().PutStr("sl_format", gen.Format)
-					dest.Resource().Attributes().PutStr("sl_metadata", key)
+					dest.Resource().Attributes().PutStr("sl_metadata", string(reqBytes))
 					bl.logData[key] = dest
 				}
 				lr.Attributes().PutStr("sl_msg", gen.Message)
