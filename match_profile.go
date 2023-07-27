@@ -203,129 +203,121 @@ type Parser struct {
 	Body  pcommon.Value
 }
 
-func (p *Parser) evalToken(elem string) (string, string) {
-	var ret, replaceFrom, replaceTo string
-	doReplace := strings.HasPrefix(elem, "replace(") && elem[len(elem)-1] == ')'
-	if doReplace {
-		replaceFrom = elem[len("replace(") : len(elem)-1]
-		arr4 := strings.Split(replaceFrom, ",")
-		replaceFrom = arr4[1]
-		if len(arr4) > 2 {
-			replaceTo = arr4[2][:len(arr4[2])-1]
-		}
-		elem = elem[len("replace("):strings.Index(elem, ",")]
+func (p *Parser) evalExp(exp *ConfigExpression) (string, string) {
+	if exp == nil {
+		return "", ""
 	}
-	doRegexp := strings.HasPrefix(elem, "regexp(") && elem[len(elem)-1] == ')'
-	if doRegexp {
-		idx2 := strings.Index(elem, ",")
-		replaceFrom = elem[idx2+1 : len(elem)-1]
-		elem = elem[len("regexp("):idx2]
-	}
-	arr3 := strings.SplitN(elem, ".", 2)
-	id := ""
-	if len(arr3) > 1 {
-		id = arr3[1]
-	}
-	switch arr3[0] {
-	case CfgSourceLit:
-		ret = id
-	case CfgSourceRattr:
-		ret = evalMap(id, p.Rattr)
-	case CfgSourceAttr:
-		ret = evalMap(id, p.Attr)
-	case CfgSourceBody:
-		switch p.Body.Type() {
-		case pcommon.ValueTypeMap:
-			if id != "" {
-				ret = evalMap(id, p.Body.Map())
-			} else {
-				ret = p.Body.AsString()
-			}
-		case pcommon.ValueTypeStr:
-			raw := make(map[string]any)
-			if id != "" && json.Unmarshal([]byte(p.Body.AsString()), &raw) == nil {
-				av := pcommon.NewValueEmpty()
-				if av.SetEmptyMap().FromRaw(raw) == nil {
-					ret = evalMap(id, av.Map())
-					break
-				}
-			}
-			fallthrough
-		default:
-			ret = evalValue(id, p.Body)
-		}
-	}
-	if doReplace {
-		ret = strings.Replace(ret, replaceFrom, replaceTo, -1)
-	} else if doRegexp {
-		r := regexp.MustCompile(replaceFrom)
-		arr := r.FindStringSubmatch(ret)
-		ret = ""
+	var id, ret string
+	if exp.Source != "" {
+		arr := strings.SplitN(exp.Source, ":", 2)
 		if len(arr) > 1 {
-			ret = strings.Join(arr[1:], "")
+			id = arr[1]
 		}
-	}
-	return id, ret
-}
-
-func (p *Parser) EvalElem(elem string) (string, string) {
-	var id, ret, ret2, op string
-	arr := Split(elem, ':')
-	text := arr[0]
-	for len(text) > 0 {
-		var token2, op2 string
-		token2, op2, text = nextToken(text)
-		id, ret2 = p.evalToken(token2)
-		if op != "" {
-			ret = (ops[op])(ret, ret2)
-		} else {
-			ret = ret2
-		}
-		op = op2
-	}
-	if len(arr) > 1 {
-		// Apply destination label name, e.g. ze_deployment_name
-		id = arr[1]
-		if len(arr) > 2 {
-			// Apply options
-			for _, option := range arr[2:] {
-				arr2 := strings.SplitN(option, "=", 2)
-				switch arr2[0] {
-				case CfgOptionRmprefix:
-					if strings.HasPrefix(ret, arr2[1]) {
-						ret = ret[len(arr2[1]):]
-					}
-				case CfgOptionRmsuffix:
-					if strings.HasSuffix(ret, arr2[1]) {
-						ret = ret[:len(ret)-len(arr2[1])]
-					}
-				case CfgOptionRmtail:
-					idx := strings.LastIndex(ret, arr2[1])
-					if idx > -1 {
-						ret = ret[:idx]
-					}
-				case CfgOptionAlphaNum:
-					new := ""
-					for _, c := range ret {
-						if unicode.IsUpper(c) || unicode.IsLower(c) || unicode.IsDigit(c) {
-							new += string(c)
-						}
-					}
-					ret = new
-				case CfgOptionLc:
-					ret = strings.ToLower(ret)
+		switch arr[0] {
+		case CfgSourceLit:
+			ret = id
+		case CfgSourceRattr:
+			ret = evalMap(id, p.Rattr)
+		case CfgSourceAttr:
+			ret = evalMap(id, p.Attr)
+		case CfgSourceBody:
+			switch p.Body.Type() {
+			case pcommon.ValueTypeMap:
+				if id != "" {
+					ret = evalMap(id, p.Body.Map())
+				} else {
+					ret = p.Body.AsString()
 				}
+			case pcommon.ValueTypeStr:
+				raw := make(map[string]any)
+				if id != "" && json.Unmarshal([]byte(p.Body.AsString()), &raw) == nil {
+					av := pcommon.NewValueEmpty()
+					if av.SetEmptyMap().FromRaw(raw) == nil {
+						ret = evalMap(id, av.Map())
+						break
+					}
+				}
+				fallthrough
+			default:
+				ret = evalValue(id, p.Body)
+			}
+		}
+	} else { // Op must be populated
+		var ret2 string
+		id, ret = p.evalExp(exp.Exps[0])
+		numExps, _ := cfgOpMap[exp.Op]
+		if numExps > 1 {
+			_, ret2 = p.evalExp(exp.Exps[1])
+		}
+		switch exp.Op {
+		case CfgOpRmprefix:
+			if strings.HasPrefix(ret, ret2) {
+				ret = ret[len(ret2):]
+			}
+		case CfgOpRmsuffix:
+			if strings.HasSuffix(ret, ret2) {
+				ret = ret[:len(ret)-len(ret2)]
+			}
+		case CfgOpRmtail:
+			idx := strings.LastIndex(ret, ret2)
+			if idx > -1 {
+				ret = ret[:idx]
+			}
+		case CfgOpAlphaNum:
+			var new string
+			for _, c := range ret {
+				if unicode.IsUpper(c) || unicode.IsLower(c) || unicode.IsDigit(c) {
+					new += string(c)
+				}
+			}
+			ret = new
+		case CfgOpLc:
+			ret = strings.ToLower(ret)
+		case CfgOpReplace:
+			_, ret3 := p.evalExp(exp.Exps[2])
+			ret = strings.Replace(ret, ret2, ret3, -1)
+		case CfgOpRegexp:
+			r, err := regexp.Compile(ret2)
+			if err == nil {
+				arr := r.FindStringSubmatch(ret)
+				ret = ""
+				if len(arr) > 1 {
+					ret = strings.Join(arr[1:], "")
+				}
+			} // TODO: else generate error
+		case CfgOpAnd:
+			ret += ret2
+		case CfgOpOr:
+			if ret == "" {
+				ret = ret2
 			}
 		}
 	}
 	return id, ret
 }
 
-func (c *Config) MatchProfile(log *zap.Logger, rl plog.ResourceLogs, ils plog.ScopeLogs, lr plog.LogRecord) (*ConfigProfile, *StreamTokenReq, error) {
+func (p *Parser) EvalElem(attribute *ConfigAttribute) (string, string) {
+	if attribute == nil {
+		return "", ""
+	}
+	return p.evalExp(attribute.Exp)
+}
+
+type ConfigResult struct {
+	ServiceGroup string   `mapstructure:"service_group"`
+	Host         string   `mapstructure:"host"`
+	Logbasename  string   `mapstructure:"logbasename"`
+	Severity     string   `mapstructure:"severity"`
+	Labels       []string `mapstructure:"labels"`
+	Message      string   `mapstructure:"message"`
+	Format       string   `mapstructure:"format"`
+}
+
+func (c *Config) MatchProfile(log *zap.Logger, rl plog.ResourceLogs, ils plog.ScopeLogs, lr plog.LogRecord) (*ConfigResult, *StreamTokenReq, error) {
 	var id, ret string
 	for _, profile := range c.Profiles {
 		req := newStreamTokenReq()
-		gen := ConfigProfile{}
+		gen := ConfigResult{}
 		parser := Parser{
 			Rattr: rl.Resource().Attributes(),
 			Attr:  lr.Attributes(),
@@ -345,7 +337,7 @@ func (c *Config) MatchProfile(log *zap.Logger, rl plog.ResourceLogs, ils plog.Sc
 		if gen.Logbasename == "" {
 			continue
 		}
-		if profile.Severity != "" {
+		if profile.Severity != nil {
 			_, sevText := parser.EvalElem(profile.Severity)
 			if sevText == "" {
 				continue

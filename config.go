@@ -51,51 +51,70 @@ const (
 	CfgFormatMessage   string = "message"
 	CfgFormatContainer string = "container"
 	CfgFormatEvent     string = "event"
-	CfgOptionRmprefix  string = "rmprefix"
-	CfgOptionRmsuffix  string = "rmsuffix"
-	CfgOptionRmtail    string = "rmtail"
-	CfgOptionAlphaNum  string = "alphanum"
-	CfgOptionLc        string = "lc"
+	CfgOpRmprefix      string = "rmprefix"
+	CfgOpRmsuffix      string = "rmsuffix"
+	CfgOpRmtail        string = "rmtail"
+	CfgOpAlphaNum      string = "alphanum"
+	CfgOpLc            string = "lc"
+	CfgOpReplace       string = "replace"
+	CfgOpRegexp        string = "regexp"
+	CfgOpAnd           string = "and"
+	CfgOpOr            string = "or"
 )
 
-var cfgIdNames map[string]struct{} = map[string]struct{}{
-	"service_group": {},
-	"host":          {},
-	"logbasename":   {},
+var cfgIdNames map[string]int = map[string]int{
+	"service_group": 0,
+	"host":          0,
+	"logbasename":   0,
 }
 
-var cfgSourceMap map[string]struct{} = map[string]struct{}{
-	CfgSourceRattr: {},
-	CfgSourceAttr:  {},
-	CfgSourceBody:  {},
-	CfgSourceLit:   {},
+var cfgSourceMap map[string]int = map[string]int{
+	CfgSourceRattr: 0,
+	CfgSourceAttr:  0,
+	CfgSourceBody:  0,
+	CfgSourceLit:   0,
 }
 
-var cfgFormatMap map[string]struct{} = map[string]struct{}{
-	CfgFormatMessage:   {},
-	CfgFormatContainer: {},
-	CfgFormatEvent:     {},
+var cfgFormatMap map[string]int = map[string]int{
+	CfgFormatMessage:   0,
+	CfgFormatContainer: 0,
+	CfgFormatEvent:     0,
 }
 
-var cfgOptionMap map[string]struct{} = map[string]struct{}{
-	CfgOptionRmprefix: {},
-	CfgOptionRmsuffix: {},
-	CfgOptionRmtail:   {},
-	CfgOptionAlphaNum: {},
-	CfgOptionLc:       {},
+var cfgOpMap map[string]int = map[string]int{
+	CfgOpRmprefix: 1,
+	CfgOpRmsuffix: 1,
+	CfgOpRmtail:   1,
+	CfgOpAlphaNum: 1,
+	CfgOpLc:       1,
+	CfgOpReplace:  3,
+	CfgOpRegexp:   2,
+	CfgOpAnd:      2,
+	CfgOpOr:       2,
+}
+
+type ConfigExpression struct {
+	Source string              `mapstructure:"source"`
+	Op     string              `mapstructure:"op"`
+	Exps   []*ConfigExpression `mapstructure:"exps"`
+}
+
+type ConfigAttribute struct {
+	Exp    *ConfigExpression `mapstructure:"exp"`
+	Rename string            `mapstructure:"rename"`
 }
 
 type ConfigProfile struct {
-	ServiceGroup string   `mapstructure:"service_group"`
-	Host         string   `mapstructure:"host"`
-	Logbasename  string   `mapstructure:"logbasename"`
-	Severity     string   `mapstructure:"severity"`
-	Labels       []string `mapstructure:"labels"`
-	Message      string   `mapstructure:"message"`
-	Format       string   `mapstructure:"format"`
+	ServiceGroup *ConfigAttribute   `mapstructure:"service_group"`
+	Host         *ConfigAttribute   `mapstructure:"host"`
+	Logbasename  *ConfigAttribute   `mapstructure:"logbasename"`
+	Severity     *ConfigAttribute   `mapstructure:"severity"`
+	Labels       []*ConfigAttribute `mapstructure:"labels"`
+	Message      *ConfigAttribute   `mapstructure:"message"`
+	Format       string             `mapstructure:"format"`
 }
 
-func keysForMap(mymap map[string]struct{}) []string {
+func keysForMap(mymap map[string]int) []string {
 	keys := make([]string, len(mymap))
 	i := 0
 	for k := range mymap {
@@ -105,74 +124,63 @@ func keysForMap(mymap map[string]struct{}) []string {
 	return keys
 }
 
-func Split(s string, sep rune) []string {
-	ret := []string{}
-	var runes []rune
-	inEscape := false
-	for _, r := range s {
-		switch {
-		case inEscape:
-			inEscape = false
-			fallthrough
-		default:
-			runes = append(runes, r)
-		case r == '\\':
-			inEscape = true
-		case r == sep:
-			ret = append(ret, string(runes))
-			runes = runes[:0]
+func validateCfgString(idx int, name, value string, cfgMap map[string]int) error {
+	if value != "" {
+		_, ok := cfgMap[value]
+		if !ok {
+			return fmt.Errorf("profile %d invalid value %s for %s, supported values %v", idx, value, name, keysForMap(cfgMap))
 		}
 	}
-	if len(runes) > 0 {
-		ret = append(ret, string(runes))
-	}
-	return ret
+	return nil
 }
 
-func validateProfileElem(idx int, name, str string, cfgMap map[string]struct{}) error {
-	arr := Split(str, ':')
-	if len(arr) < 1 || len(arr[0]) < 1 {
-		return fmt.Errorf("profile %d missing %s", idx, name)
+func validateProfileExp(idx int, name string, exp *ConfigExpression) error {
+	if exp == nil {
+		return nil
 	}
-	elem := arr[0]
-	if strings.HasPrefix(elem, "replace(") || strings.HasPrefix(elem, "regexp(") {
-		idx1 := strings.Index(elem, "(")
-		prefix := elem[:idx1]
-		idx2 := strings.Index(elem, ",")
-		if idx2 < 0 || idx2 >= len(elem)-2 { // not found or no text after comma
-			return fmt.Errorf("profile %d invalid value %s for %s, %s requires arguments", idx, arr[0], name, prefix)
+	if (exp.Source == "" && exp.Op == "") || (exp.Source != "" && exp.Op != "") {
+		return fmt.Errorf("profile %d invalid, must specify exactly one of source or operator", idx)
+	}
+	arr := strings.SplitN(exp.Source, ":", 2)
+	if len(arr) > 0 {
+		err := validateCfgString(idx, "source", arr[0], cfgSourceMap)
+		if err != nil {
+			return err
 		}
-		if prefix == "regexp" {
-			_, err := regexp.Compile(elem[idx2+1 : len(elem)-1])
+	}
+	err := validateCfgString(idx, "op", exp.Op, cfgOpMap)
+	if err != nil {
+		return err
+	}
+	if exp.Op != "" {
+		numExps, _ := cfgOpMap[exp.Op]
+		if len(exp.Exps) != numExps {
+			return fmt.Errorf("profile %d invalid number of expressions %d for op %s expecting %d", len(exp.Exps), exp.Op, numExps)
+		}
+		if exp.Op == CfgOpRegexp &&
+			strings.HasPrefix(exp.Exps[1].Source, CfgSourceLit) {
+			_, err = regexp.Compile(exp.Exps[1].Source[len(CfgSourceLit)+1:])
 			if err != nil {
-				return fmt.Errorf("profile %d invalid value %s for %s, %s expression invalid", idx, arr[0], name, prefix)
+				return fmt.Errorf("profile %d invalid value %s for %s, regular expression invalid", idx, exp.Exps[1].Source, name)
 			}
 		}
-		elem = elem[len(prefix)+1 : idx2]
 	}
-	arr3 := strings.SplitN(elem, ".", 2)
-	if len(arr3) < 1 || len(arr3[0]) < 1 {
-		return fmt.Errorf("profile %d missing %s", idx, name)
-	}
-	_, ok := cfgMap[arr3[0]]
-	if !ok {
-		return fmt.Errorf("profile %d invalid value %s for %s, supported values %v", idx, arr3[0], name, keysForMap(cfgMap))
-	}
-	_, ok = cfgIdNames[name]
-	if ok && len(arr) < 2 {
-		return fmt.Errorf("profile %d - %s: %s requires a replacement key", idx, name, str)
-	}
-	if len(arr) > 2 {
-		for _, option := range arr[2:] {
-			arr2 := strings.SplitN(option, "=", 2)
-			if len(arr2) < 1 || len(arr2[0]) < 1 {
-				return fmt.Errorf("profile %d missing option for %s", idx, name)
-			}
-			_, ok := cfgOptionMap[arr2[0]]
-			if !ok {
-				return fmt.Errorf("profile %d invalid option %s for %s, supported values %v", idx, arr2[0], name, keysForMap(cfgOptionMap))
-			}
+	for _, exp2 := range exp.Exps {
+		err = validateProfileExp(idx, "exps", exp2)
+		if err != nil {
+			return err
 		}
+	}
+	return nil
+}
+
+func validateProfileElem(idx int, name string, attribute *ConfigAttribute) error {
+	if attribute == nil {
+		return nil
+	}
+	err := validateProfileExp(idx, name, attribute.Exp)
+	if err != nil {
+		return err
 	}
 	return nil
 }
@@ -180,28 +188,27 @@ func validateProfileElem(idx int, name, str string, cfgMap map[string]struct{}) 
 // Validate checks if the processor configuration is valid
 func (cfg *Config) Validate() error {
 	for idx, profile := range cfg.Profiles {
-		if err := validateProfileElem(idx, "service_group", profile.ServiceGroup, cfgSourceMap); err != nil {
+		if err := validateProfileElem(idx, "service_group", profile.ServiceGroup); err != nil {
 			return err
 		}
-		if err := validateProfileElem(idx, "host", profile.Host, cfgSourceMap); err != nil {
+		if err := validateProfileElem(idx, "host", profile.Host); err != nil {
 			return err
 		}
-		if err := validateProfileElem(idx, "logbasename", profile.Logbasename, cfgSourceMap); err != nil {
+		if err := validateProfileElem(idx, "logbasename", profile.Logbasename); err != nil {
 			return err
 		}
-		if profile.Severity != "" {
-			if err := validateProfileElem(idx, "severity", profile.Severity, cfgSourceMap); err != nil {
-				return err
-			}
-		}
-		if err := validateProfileElem(idx, "message", profile.Message, cfgSourceMap); err != nil {
+		if err := validateProfileElem(idx, "severity", profile.Severity); err != nil {
 			return err
 		}
-		if err := validateProfileElem(idx, "format", profile.Format, cfgFormatMap); err != nil {
+		if err := validateProfileElem(idx, "message", profile.Message); err != nil {
+			return err
+		}
+		err := validateCfgString(idx, "format", profile.Format, cfgFormatMap)
+		if err != nil {
 			return err
 		}
 		for _, label := range profile.Labels {
-			if err := validateProfileElem(idx, "labels", label, cfgSourceMap); err != nil {
+			if err := validateProfileElem(idx, "labels", label); err != nil {
 				return err
 			}
 		}
