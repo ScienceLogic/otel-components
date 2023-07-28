@@ -157,10 +157,10 @@ func validateProfileExp(idx int, name string, exp *ConfigExpression) error {
 	if exp.Op != "" {
 		numExps, _ := cfgOpMap[exp.Op]
 		if numExps != CMaxNumExps && len(exp.Exps) != numExps {
-			return fmt.Errorf("profile %d invalid number of expressions %d for op %s expecting %d", len(exp.Exps), exp.Op, numExps)
+			return fmt.Errorf("profile %d invalid number of expressions %d for op %s expecting %d", idx, len(exp.Exps), exp.Op, numExps)
 		}
 		if numExps == CMaxNumExps && len(exp.Exps) < 2 {
-			return fmt.Errorf("profile %d invalid number of expressions %d for op %s expecting 2 or more", len(exp.Exps), exp.Op)
+			return fmt.Errorf("profile %d invalid number of expressions %d for op %s expecting 2 or more", idx, len(exp.Exps), exp.Op)
 		}
 		if exp.Op == CfgOpRegexp &&
 			strings.HasPrefix(exp.Exps[1].Source, CfgSourceLit) {
