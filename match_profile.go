@@ -246,6 +246,19 @@ func (p *Parser) evalExp(exp *ConfigExpression) (string, string) {
 		var ret2 string
 		id, ret = p.evalExp(exp.Exps[0])
 		numExps, _ := cfgOpMap[exp.Op]
+		if numExps == CMaxNumExps {
+			for _, exp2 := range exp.Exps[1:] {
+				_, ret2 = p.evalExp(exp2)
+				switch exp.Op {
+				case CfgOpAnd:
+					ret += ret2
+				case CfgOpOr:
+					if ret == "" {
+						ret = ret2
+					}
+				}
+			}
+		}
 		if numExps > 1 {
 			_, ret2 = p.evalExp(exp.Exps[1])
 		}
@@ -285,12 +298,6 @@ func (p *Parser) evalExp(exp *ConfigExpression) (string, string) {
 					ret = strings.Join(arr[1:], "")
 				}
 			} // TODO: else generate error
-		case CfgOpAnd:
-			ret += ret2
-		case CfgOpOr:
-			if ret == "" {
-				ret = ret2
-			}
 		}
 	}
 	return id, ret

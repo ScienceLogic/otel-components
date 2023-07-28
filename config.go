@@ -81,6 +81,8 @@ var cfgFormatMap map[string]int = map[string]int{
 	CfgFormatEvent:     0,
 }
 
+const CMaxNumExps = 10
+
 var cfgOpMap map[string]int = map[string]int{
 	CfgOpRmprefix: 1,
 	CfgOpRmsuffix: 1,
@@ -89,8 +91,8 @@ var cfgOpMap map[string]int = map[string]int{
 	CfgOpLc:       1,
 	CfgOpReplace:  3,
 	CfgOpRegexp:   2,
-	CfgOpAnd:      2,
-	CfgOpOr:       2,
+	CfgOpAnd:      CMaxNumExps,
+	CfgOpOr:       CMaxNumExps,
 }
 
 type ConfigExpression struct {
@@ -154,8 +156,11 @@ func validateProfileExp(idx int, name string, exp *ConfigExpression) error {
 	}
 	if exp.Op != "" {
 		numExps, _ := cfgOpMap[exp.Op]
-		if len(exp.Exps) != numExps {
+		if numExps != CMaxNumExps && len(exp.Exps) != numExps {
 			return fmt.Errorf("profile %d invalid number of expressions %d for op %s expecting %d", len(exp.Exps), exp.Op, numExps)
+		}
+		if numExps == CMaxNumExps && len(exp.Exps) < 2 {
+			return fmt.Errorf("profile %d invalid number of expressions %d for op %s expecting 2 or more", len(exp.Exps), exp.Op)
 		}
 		if exp.Op == CfgOpRegexp &&
 			strings.HasPrefix(exp.Exps[1].Source, CfgSourceLit) {
