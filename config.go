@@ -84,9 +84,9 @@ var cfgFormatMap map[string]int = map[string]int{
 const CMaxNumExps = 10
 
 var cfgOpMap map[string]int = map[string]int{
-	CfgOpRmprefix: 1,
-	CfgOpRmsuffix: 1,
-	CfgOpRmtail:   1,
+	CfgOpRmprefix: 2,
+	CfgOpRmsuffix: 2,
+	CfgOpRmtail:   2,
 	CfgOpAlphaNum: 1,
 	CfgOpLc:       1,
 	CfgOpReplace:  3,
