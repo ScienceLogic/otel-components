@@ -7,13 +7,36 @@ receivers:
 processors:
   sllogformat:
     send_batch_size: 10000
-    timeout: 5s
+    timeout: 10s
     profiles:
-    - service_group: rattr.cloudwatch.log.group.name:ze_deployment_name
-      host: rattr.aws.region:host
-      logbasename: rattr.cloudwatch.log.stream:logbasename:rmprefix=kube-apiserver-:rmtail=-:alphanum:lc
-      severity: body.responseStatus.code
-      message: body
+    - service_group: # cloudwatch
+        exp:
+          source: rattr:cloudwatch.log.group.name
+        rename: ze_deployment_name
+      host:
+        exp:
+          source: rattr:aws.region
+        rename: host
+      logbasename:
+        exp:
+          op: lc
+          exps:
+          - op: alphanum
+            exps:
+              - op: rmprefix
+                exps:
+                - op: rmtail
+                  exps:
+                    - source: rattr:cloudwatch.log.stream
+                    - source: lit:-
+                - source: lit:kube-apiserver-
+        rename: logbasename
+      severity:
+        exp:
+          source: body:responseStatus.code
+      message:
+        exp:
+          source: body
       format: event
 
 exporters:
