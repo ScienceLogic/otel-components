@@ -29,30 +29,49 @@ incoming stream:
 - `lit`: A literal injected from the configuration
 - `rattr`: Resource attribute, also called resource label
 - `attr`: Log record attribute
-- `body`: The message body, when the body is a map, e.g. Windows Event Log stream
+- `body`: The message body as a string or map to elements within
 
 The syntax for associating metadata looks like:
 
-```<destination>: <source>.<key>:<replacement key>:<options>```
+```
+<destination>:
+  exp:
+    source: <source>[:<key path>]
+  rename: <replacement name>
+```
 
-Keys can be surrounded by multiple operators:
+If `rename` is omitted, the key path is used as the attribute
+name if available followed by the resulting value.  It is
+recommended to specify `rename` for service group, host,
+logbasename, and all literals.
 
-- `replace(<key>,str1,str2)`: Replace str1 with str2 in the result
-- `regexp(<key>,<exp>)`: Replace with concatination of golang regexp captures  
-`\` and `:` must be escaped with `\`, e.g. `^([^\:]*)\:.*$` returns all before colon
-- `<key1>+<key2>`: Append the result of key1 with the result of key2
-- `<key1>||<key2>`: Result of key1 or, if empty, the result of key2
+In addition to sources an expression can be formed from the
+following operators with associated expressions A and B:
 
-The + and || operators are evaluate from left to right.
-Replacement keys are optional for labels which default to the last source key.
+- `rmprefix`: Remove prefix B from A if matched
+- `rmsuffix`: Remove suffix B from A if matched
+- `rmtail`: Remove everything from A after and including the last match of B
+- `alphanum`: Filter out all characters that are not letters or numbers from A
+- `lc`: Transform A to lowercase
+- `regexp`: Concatinate all captures from A using golang regexp B
+- `and`: Concatinate all results from expressions
+- `or`: Return the first expression result that is not empty
 
-The following options are supported:
+The syntax for operators looks like:
 
-- `rmprefix`: To remove a prefix if matched, e.g. `rmprefix=Microsoft-Windows-`
-- `rmsuffix`: To remove a suffix if matched, e.g. `rmsuffix=.log`
-- `rmtail`: To remove everything after the last match, e.g. `rmtail=-`
-- `alphanum`: Filter out all characters that are not letters or numbers
-- `lc`: Transform to lowercase
+```
+<destination>:
+  exp:
+    op: <operator>
+    exps:
+    - <expression A>
+    - <expression B>
+    - <expression C ...>
+  rename: <replacement name>
+```
+
+The expressions under `exps` are either `source` or a single `op`
+with associated `exps` of its own.
 
 Profiles have an additional configuration for the message `format`
 with the following values:
@@ -67,7 +86,7 @@ ScienceLogic commponents include the following resource attributes:
 - `sl_service_group`: Domain of anomaly correlation
 - `sl_host`: Host or computer name
 - `sl_logbasename`: Application in lowercase, e.g. postgres
-- `sl_format`: Format option from the matching profile, e.g. event
+- `sl_format`: Format option from the matching profile
 - `sl_metadata`: An encoding of all log stream metadata
 
 And the following log record attribute:
@@ -93,21 +112,61 @@ processors:
     send_batch_size: 10000
     timeout: 10s
     profiles:
-    - service_group: lit.default:ze_deployment_name # windows event log
-      host: body.computer:host
-      logbasename: body.provider.name:logbasename:rmprefix=Microsoft-Windows-:alphanum:lc
+    - service_group: # windows event log
+        exp:
+          source: lit:default
+        rename: ze_deployment_name
+      host:
+        exp:
+          source: body:computer
+        rename: host
+      logbasename:
+        exp:
+          op: lc
+          exps:
+          - op: alphanum
+            exps:
+              - op: rmprefix
+                exps:
+                  - source: body:provider.name
+                  - source: lit:Microsoft-Windows-
+        rename: logbasename
       labels:
-      - body.channel:win_channel
-      - body.keywords:win_keywords
-      message: body.message||body.event_data||body.keywords
+      - exp:
+          source: body:channel
+        rename: win_channel
+      - exp:
+          source: body:keywords
+        rename: win_keywords
+      message:
+        exp:
+          op: or
+          exps:
+            - source: body:message
+            - source: body:event_data
+            - source: body:keywords
       format: event
-    - service_group: lit.default:ze_deployment_name # docker logs
-      host: rattr.host.name:host
-      logbasename: attr.container_id:logbasename
+    - service_group: # docker logs
+        exp:
+          source: lit:default
+        rename: ze_deployment_name
+      host:
+        exp:
+          source: rattr:host.name
+        rename: host
+      logbasename:
+        exp:
+          source: attr:container_id
+        rename: logbasename
       labels:
-      - rattr.os.type
-      - attr.log.file.path:zid_path
-      message: body
+      - exp:
+          source: rattr:os.type
+      - exp:
+          source: attr:log.file.path
+        rename: zid_path
+      message:
+        exp:
+          source: body
       format: container
 ```
 
