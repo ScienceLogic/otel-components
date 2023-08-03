@@ -39,22 +39,33 @@ processors:
     send_batch_size: 10000
     timeout: 10s
     profiles:
-    - service_group: lit.default:ze_deployment_name # windows event log
-      host: body.computer:host
-      logbasename: body.provider.name:logbasename:rmprefix=Microsoft-Windows-:alphanum:lc
-      labels:
-      - body.channel:win_channel
-      - body.keywords:win_keywords
-      message: body.message||body.event_data||body.keywords
+    - service_group: # windows event log
+        exp:
+          source: lit:default
+        rename: ze_deployment_name
+      host:
+        exp:
+          source: body:computer
+        rename: host
+      logbasename:
+        exp:
+          op: lc
+          exps:
+          - op: alphanum
+            exps:
+              - op: rmprefix
+                exps:
+                  - source: body:provider.name
+                  - source: lit:Microsoft-Windows-
+        rename: logbasename
+      message:
+        exp:
+          op: or
+          exps:
+            - source: body:message
+            - source: body:event_data
+            - source: body:keywords
       format: event
-    - service_group: lit.default:ze_deployment_name # docker logs
-      host: rattr.host.name:host
-      logbasename: attr.container_id:logbasename
-      labels:
-      - rattr.os.type
-      - attr.log.file.path:zid_path
-      message: body
-      format: container
 
 exporters:
   slzebrium:
