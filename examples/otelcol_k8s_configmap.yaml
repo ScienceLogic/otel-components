@@ -110,16 +110,48 @@ data:
         send_batch_size: 10000
         timeout: 10s
         profiles:
-        - service_group: rattr.k8s.namespace.name:ze_deployment_name # kubernetes logs
-          host: rattr.k8s.node.name:host
-          logbasename: rattr.k8s.container.name:logbasename
-          message: body
+        - service_group: # kubernetes log
+            exp:
+              source: rattr:k8s.namespace.name
+            rename: ze_deployment_name
+          host:
+            exp:
+              source: rattr:k8s.node.name:host
+            rename: host
+          logbasename:
+            exp:
+              source: rattr:k8s.container.name
+            rename: logbasename
+          message:
+            exp:
+              source: body
           format: container
-        - service_group: body.object.metadata.namespace:ze_deployment_name # kubernetes events
-          host: body.deprecatedSource.host||lit.minikube:host
-          logbasename: body.object.deprecatedSource.component:logbasename:alphanum:lc
-          severity: body.object.type
-          message: body.object
+        - service_group: # kubernetes events
+            exp:
+              source: body:object.metadata.namespace
+            rename: ze_deployment_name
+          host:
+            exp:
+              op: or
+              exps:
+                - source: body:deprecatedSource.host
+                - source: lit:minikube
+              source:
+            rename: host
+          logbasename:
+            exp:
+              op: lc
+              exps:
+              - op: alphanum
+                exps:
+                  - source: body:object.deprecatedSource.component
+            rename: logbasename
+          severity:
+            exp:
+              source: body:object.type
+          message:
+            exp:
+              source: body:object
           format: event
 
     exporters:
@@ -157,7 +189,7 @@ spec:
     spec:
       containers:
       - name: otel-collector
-        image: 872295030327.dkr.ecr.us-west-2.amazonaws.com/zebrium-otel-collector:0.0.0-033df72
+        image: 872295030327.dkr.ecr.us-west-2.amazonaws.com/zebrium-otel-collector:0.0.0-8c2598a
         resources:
           limits:
             cpu: 100m
