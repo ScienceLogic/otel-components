@@ -47,15 +47,73 @@ func TestUnmarshalConfig(t *testing.T) {
 			Timeout:          time.Second * 10,
 			Profiles: []ConfigProfile{
 				{
-					ServiceGroup: "lit.default:ze_deployment_name",
-					Host:         "body.computer:host",
-					Logbasename:  "body.provider.name:logbasename:rmprefix=Microsoft-Windows-:alphanum:lc",
-					Labels: []string{
-						"body.channel:win_channel",
-						"body.keywords:win_keywords",
+					ServiceGroup: &ConfigAttribute{
+						Exp: &ConfigExpression{
+							Source: "lit:default",
+						},
+						Rename: "ze_deployment_name",
 					},
-					Message: "body.message||body.event_data||body.keywords",
-					Format:  "event",
+					Host: &ConfigAttribute{
+						Exp: &ConfigExpression{
+							Source: "body:computer",
+						},
+						Rename: "host",
+					},
+					Logbasename: &ConfigAttribute{
+						Exp: &ConfigExpression{
+							Op: "lc",
+							Exps: []*ConfigExpression{
+								&ConfigExpression{
+									Op: "alphanum",
+									Exps: []*ConfigExpression{
+										&ConfigExpression{
+											Op: "rmprefix",
+											Exps: []*ConfigExpression{
+												&ConfigExpression{
+													Source: "body:provider.name",
+												},
+												&ConfigExpression{
+													Source: "lit:Microsoft-Windows-",
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+						Rename: "logbasename",
+					},
+					Labels: []*ConfigAttribute{
+						&ConfigAttribute{
+							Exp: &ConfigExpression{
+								Source: "body:channel",
+							},
+							Rename: "win_channel",
+						},
+						&ConfigAttribute{
+							Exp: &ConfigExpression{
+								Source: "body:keywords",
+							},
+							Rename: "win_keywords",
+						},
+					},
+					Message: &ConfigAttribute{
+						Exp: &ConfigExpression{
+							Op: "or",
+							Exps: []*ConfigExpression{
+								&ConfigExpression{
+									Source: "body:message",
+								},
+								&ConfigExpression{
+									Source: "body:event_data",
+								},
+								&ConfigExpression{
+									Source: "body:keywords",
+								},
+							},
+						},
+					},
+					Format: "event",
 				},
 			},
 		}, cfg)
@@ -91,7 +149,12 @@ func TestValidateConfig_ServiceGroup(t *testing.T) {
 		SendBatchMaxSize: 1000,
 		Profiles: []ConfigProfile{
 			{
-				ServiceGroup: "bad.default:ze_deployment_name",
+				ServiceGroup: &ConfigAttribute{
+					Exp: &ConfigExpression{
+						Source: "bad:default",
+					},
+					Rename: "ze_deployment_name",
+				},
 			},
 		},
 	}
