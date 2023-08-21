@@ -40,6 +40,13 @@ type StreamTokenReq struct {
 	Tags               map[string]string `json:"tags"`
 }
 
+// A formatted container log entry
+type ContainerLogEntry struct {
+	Log       string `json:"log"`
+	Timestamp string `json:"timestamp"`
+	Stream    string `json:"stream"`
+}
+
 func newStreamTokenReq() StreamTokenReq {
 	return StreamTokenReq{
 		Stream:             "native",
@@ -397,6 +404,13 @@ func (c *Config) MatchProfile(log *zap.Logger, rl plog.ResourceLogs, ils plog.Sc
 			}
 		case CfgFormatContainer:
 			req.ContainerLog = true
+			if len(gen.Message) > 2 && gen.Message[0] == '{' {
+				var contLog ContainerLogEntry
+				err := json.Unmarshal([]byte(gen.Message), &contLog)
+				if err == nil {
+					gen.Message = contLog.Timestamp + " " + contLog.Log
+				}
+			}
 		}
 		gen.Format = profile.Format
 		return &gen, &req, nil
