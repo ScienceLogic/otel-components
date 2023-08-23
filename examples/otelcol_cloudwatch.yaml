@@ -43,7 +43,7 @@ exporters:
   slzebrium:
     verbosity: detailed
     endpoint: https://cloud.zebrium.com
-    ze_token: 0000000000000000000000000000000000000000
+    ze_token: "0000000000000000000000000000000000000000"
 
 service:
   pipelines:

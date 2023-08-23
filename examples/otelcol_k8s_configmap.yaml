@@ -124,7 +124,10 @@ data:
             rename: logbasename
           message:
             exp:
-              source: body
+              op: and
+              exps:
+              - source: body:timestamp
+              - source: body:log
           format: container
         - service_group: # kubernetes events
             exp:
@@ -158,7 +161,7 @@ data:
       slzebrium:
         ## Replace with creditials for your Zebrium deployment
         endpoint: https://cloud.zebrium.com
-        ze_token: 0000000000000000000000000000000000000000
+        ze_token: "0000000000000000000000000000000000000000"
         verbosity: detailed
 
     service:
