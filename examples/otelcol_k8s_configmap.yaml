@@ -161,7 +161,7 @@ data:
       slzebrium:
         ## Replace with creditials for your Zebrium deployment
         endpoint: https://cloud.zebrium.com
-        ze_token: "0000000000000000000000000000000000000000"
+        ze_token: "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
         verbosity: detailed
 
     service:
