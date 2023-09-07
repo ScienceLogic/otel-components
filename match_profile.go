@@ -230,7 +230,12 @@ func (p *Parser) evalExp(exp *ConfigExpression) (string, string) {
 				}
 			case pcommon.ValueTypeStr:
 				raw := make(map[string]any)
-				if id != "" && json.Unmarshal([]byte(p.Body.AsString()), &raw) == nil {
+				if id != "" {
+					err := json.Unmarshal([]byte(p.Body.AsString()), &raw)
+					if err != nil {
+						// Can't index into non object
+						return "", ""
+					}
 					av := pcommon.NewValueEmpty()
 					if av.SetEmptyMap().FromRaw(raw) == nil {
 						ret = evalMap(id, av.Map())
