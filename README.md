@@ -52,6 +52,7 @@ following operators with associated expressions A and B:
 - `rmsuffix`: Remove suffix B from A if matched
 - `rmtail`: Remove everything from A after and including the last match of B
 - `alphanum`: Filter out all characters that are not letters or numbers from A
+- `unescape`: Filter out ESC character
 - `lc`: Transform A to lowercase
 - `regexp`: Concatinate all captures from A using golang regexp B
 - `and`: Concatinate all results from expressions

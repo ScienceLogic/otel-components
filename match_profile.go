@@ -291,6 +291,11 @@ func (p *Parser) evalExp(exp *ConfigExpression) (string, string) {
 			ret = new
 		case CfgOpLc:
 			ret = strings.ToLower(ret)
+		case CfgOpUnescape:
+			// Remove the ESC character. This is special-cased because
+			// embedding escapes into configurations/configs can be
+			// problematic.
+			ret = strings.Replace(ret, "\x1B", "", -1)
 		case CfgOpReplace:
 			_, ret3 := p.evalExp(exp.Exps[2])
 			ret = strings.Replace(ret, ret2, ret3, -1)

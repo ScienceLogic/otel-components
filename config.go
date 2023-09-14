@@ -56,6 +56,7 @@ const (
 	CfgOpRmtail        string = "rmtail"
 	CfgOpAlphaNum      string = "alphanum"
 	CfgOpLc            string = "lc"
+	CfgOpUnescape      string = "unescape"
 	CfgOpReplace       string = "replace"
 	CfgOpRegexp        string = "regexp"
 	CfgOpAnd           string = "and"
@@ -91,6 +92,7 @@ var cfgOpMap map[string]int = map[string]int{
 	CfgOpLc:       1,
 	CfgOpReplace:  3,
 	CfgOpRegexp:   2,
+	CfgOpUnescape: 1,
 	CfgOpAnd:      CMaxNumExps,
 	CfgOpOr:       CMaxNumExps,
 }
