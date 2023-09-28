@@ -1,0 +1,5 @@
+{
+	"build": { "dockerfile": "Dockerfile" },
+	"name": "dev container",
+	"workspaceFolder": "/workspaces/otc/awstimestreamexporter",
+}
