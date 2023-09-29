@@ -2,6 +2,13 @@ package awstimestreamexporter
 
 import (
 	"context"
+	"errors"
+	"math"
+	"reflect"
+	"regexp"
+	"strconv"
+	"strings"
+
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/timestreamwrite"
 	"github.com/aws/aws-sdk-go-v2/service/timestreamwrite/types"
@@ -9,11 +16,6 @@ import (
 	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/pmetric"
 	"go.uber.org/zap"
-	"regexp"
-	"strconv"
-	"strings"
-	"reflect"
-	"errors"
 )
 
 type timestreamExporter struct {
@@ -134,48 +136,64 @@ func (e *timestreamExporter) convertMetricsToRecords(md pmetric.Metrics) []types
 	return records
 }
 
-
 // main entrypoint for metrics exporting
 func (e *timestreamExporter) pushMetrics(ctx context.Context, md pmetric.Metrics) error {
 	e.logger.Info("Starting push metrics...")
+	var batchSize float64 = 100
 	records := e.convertMetricsToRecords(md)
-	// TODO: Possibly batch these records when I require out how the backend
-	// works better.  Some of the exporter helpers may handle this already.
-	writeRecordsInput := &timestreamwrite.WriteRecordsInput{
-		DatabaseName: &e.database,
-		TableName:    &e.table,
-		Records:      records,
-	}
+	var batchErrors []error
 
-	writeOut, err := e.writeSession.WriteRecords(ctx, writeRecordsInput)
-	e.logger.Info("Timestream Write Status", zap.Any("Write Status", writeOut))
-
-	var oe *smithy.OperationError
-	if err != nil {
-		e.logger.Error("Write records failed", zap.String("Error", err.Error()))
-		e.logger.Error("Error:", zap.Any("error", err))
-		e.logger.Error("Type of Error:", zap.String("Error type", reflect.TypeOf(err).String()))
-		if errors.As(err, &oe) {
-			e.logger.Error("Failed to call service:", zap.String("service", oe.Service()), zap.String("operation", oe.Operation()), zap.Error(oe.Unwrap()))
-		}else {
-			// TODO:  Below is not working!!!!???????
-			if reject, ok := err.(*types.RejectedRecordsException); ok {
-				e.logger.Error("Reject", zap.Any("reject", reject))
-				e.logger.Error(
-					"Records Rejected",
-					zap.String("ErrorCode", reject.ErrorCode()),
-					zap.String("ErrorMessage", reject.ErrorMessage()),
-				)
-			}
+	// TODO there is probably a much nicer way to loop over batches
+	for i := 0; i < int(math.Ceil(float64(len(records))/batchSize)); i++ {
+		var batchStart int = i * int(batchSize)
+		var batchEnd int = batchStart + int(batchSize) - 1
+		if batchEnd > len(records) {
+			batchEnd = len(records)
 		}
-		e.logger.Debug("Records:", zap.Any("records", records))
-		return err
-	} else {
-		e.logger.Info("Write records is successful")
+		e.logger.Debug("Sending Batch", zap.Int("start", batchStart), zap.Int("end", batchEnd))
+		var recordBatch []types.Record = records[batchStart:batchEnd]
+
+		// TODO: Possibly batch these records when I require out how the backend
+		// works better.  Some of the exporter helpers may handle this already.
+		writeRecordsInput := &timestreamwrite.WriteRecordsInput{
+			DatabaseName: &e.database,
+			TableName:    &e.table,
+			Records:      recordBatch,
+		}
+
+		writeOut, err := e.writeSession.WriteRecords(ctx, writeRecordsInput)
+		e.logger.Info("Timestream Write Status", zap.Any("Write Status", writeOut))
+
+		if err != nil {
+			e.logger.Error("Write records failed", zap.Error(err))
+			e.logger.Error("Type of Error:", zap.String("Error type", reflect.TypeOf(err).String()))
+			var ve *types.ValidationException
+			if errors.As(err, &ve) {
+				e.logger.Error("Validation Exception", zap.String("msg", ve.ErrorMessage()))
+			}
+			var re *types.RejectedRecordsException
+			if errors.As(err, &re) {
+				e.logger.Error("Rejected Records Exception", zap.String("msg", re.ErrorMessage()), zap.Error(re))
+				for _, record := range re.RejectedRecords {
+					e.logger.Error("Rejected Record", zap.Int32("index", record.RecordIndex), zap.String("msg", *record.Reason))
+				}
+			}
+			var oe *smithy.OperationError
+			if errors.As(err, &oe) {
+				e.logger.Error("Operation Exception", zap.Error(oe))
+			}
+			e.logger.Debug("Records:", zap.Any("records", recordBatch))
+			batchErrors = append(batchErrors, err)
+		} else {
+			e.logger.Info("Write records is successful")
+		}
 	}
 
 	e.logger.Info("Done push")
 
+	if len(batchErrors) > 0 {
+		return errors.Join(batchErrors...)
+	}
 	return nil
 }
 
