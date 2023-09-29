@@ -254,6 +254,7 @@ func (p *Parser) evalExp(exp *ConfigExpression) (string, string) {
 				ret = evalValue(id, p.Body)
 			}
 		}
+		ret = FilterASCII(ret)
 	} else { // Op must be populated
 		var ret2 string
 		id, ret = p.evalExp(exp.Exps[0])
