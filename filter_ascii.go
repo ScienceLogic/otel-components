@@ -26,6 +26,10 @@ func FilterASCII(in string) string {
 		if utf8.RuneLen(r) > 1 {
 			continue
 		}
+		if unicode.IsPrint(r) {
+			out += string(r)
+			continue
+		}
 		switch r {
 		case '\a':
 			out += `\a`
@@ -42,11 +46,7 @@ func FilterASCII(in string) string {
 		case '\v':
 			out += `\v`
 		default:
-			if !unicode.IsPrint(r) {
-				out += fmt.Sprintf("\\%03o", int(r))
-			} else {
-				out += string(r)
-			}
+			out += fmt.Sprintf("\\%03o", int(r))
 		}
 	}
 	return out
