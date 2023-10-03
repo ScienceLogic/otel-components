@@ -16,38 +16,39 @@ package sllogformatprocessor // import "github.com/open-telemetry/opentelemetry-
 
 import (
 	"fmt"
+	"strings"
 	"unicode"
 	"unicode/utf8"
 )
 
 func FilterASCII(in string) string {
-	var out string
+	var sb strings.Builder
 	for _, r := range in {
 		if utf8.RuneLen(r) > 1 {
 			continue
 		}
 		if unicode.IsPrint(r) {
-			out += string(r)
+			sb.WriteRune(r)
 			continue
 		}
 		switch r {
 		case '\a':
-			out += `\a`
+			sb.WriteString(`\a`)
 		case '\b':
-			out += `\b`
+			sb.WriteString(`\b`)
 		case '\t':
-			out += `\t`
+			sb.WriteString(`\t`)
 		case '\n':
-			out += `\n`
+			sb.WriteString(`\n`)
 		case '\f':
-			out += `\f`
+			sb.WriteString(`\f`)
 		case '\r':
-			out += `\r`
+			sb.WriteString(`\r`)
 		case '\v':
-			out += `\v`
+			sb.WriteString(`\v`)
 		default:
-			out += fmt.Sprintf("\\%03o", int(r))
+			sb.WriteString(fmt.Sprintf("\\%03o", int(r)))
 		}
 	}
-	return out
+	return sb.String()
 }
