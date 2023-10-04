@@ -104,8 +104,9 @@ type ConfigExpression struct {
 }
 
 type ConfigAttribute struct {
-	Exp    *ConfigExpression `mapstructure:"exp"`
-	Rename string            `mapstructure:"rename"`
+	Exp      *ConfigExpression `mapstructure:"exp"`
+	Rename   string            `mapstructure:"rename"`
+	Validate string            `mapstructure:"validate"`
 }
 
 type ConfigProfile struct {
@@ -188,6 +189,12 @@ func validateProfileElem(idx int, name string, attribute *ConfigAttribute) error
 	err := validateProfileExp(idx, name, attribute.Exp)
 	if err != nil {
 		return err
+	}
+	if attribute.Validate != "" {
+		_, err = regexp.Compile(attribute.Validate)
+		if err != nil {
+			return fmt.Errorf("profile %d %s has invalid validate %s - %s", idx, name, attribute.Validate, err.Error())
+		}
 	}
 	return nil
 }

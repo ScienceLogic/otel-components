@@ -38,12 +38,17 @@ The syntax for associating metadata looks like:
   exp:
     source: <source>[:<key path>]
   rename: <replacement name>
+  validate: <regexp>
 ```
 
 If `rename` is omitted, the key path is used as the attribute
 name if available followed by the resulting value.  It is
 recommended to specify `rename` for service group, host,
 logbasename, and all literals.
+
+Optional `validate` will cause the profile attribute not to
+match if the value does not matche specified golang regular
+expression.
 
 In addition to sources an expression can be formed from the
 following operators with associated expressions A and B:
@@ -69,6 +74,7 @@ The syntax for operators looks like:
     - <expression B>
     - <expression C ...>
   rename: <replacement name>
+  validate: <regexp>
 ```
 
 The expressions under `exps` are either `source` or a single `op`
@@ -121,6 +127,7 @@ processors:
         exp:
           source: body:computer
         rename: host
+        validate: "^myhost$"
       logbasename:
         exp:
           op: lc

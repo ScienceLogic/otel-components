@@ -205,6 +205,7 @@ func evalMap(elem string, in pcommon.Map) string {
 }
 
 type Parser struct {
+	Log   *zap.Logger
 	Rattr pcommon.Map
 	Attr  pcommon.Map
 	Body  pcommon.Value
@@ -315,7 +316,11 @@ func (p *Parser) evalExp(exp *ConfigExpression) (string, string) {
 				if len(arr) > 1 {
 					ret = strings.Join(arr[1:], "")
 				}
-			} // TODO: else generate error
+			} else {
+				p.Log.Info("failed to compile regexp",
+					zap.String("id", id),
+					zap.String("value", ret2))
+			}
 		}
 	}
 	return id, ret
@@ -328,6 +333,16 @@ func (p *Parser) EvalElem(attribute *ConfigAttribute) (string, string) {
 	id, ret := p.evalExp(attribute.Exp)
 	if attribute.Rename != "" {
 		id = attribute.Rename
+	}
+	if attribute.Validate != "" {
+		r := regexp.MustCompile(attribute.Validate)
+		if !r.MatchString(ret) {
+			p.Log.Info("failed to validate regexp",
+				zap.String("id", id),
+				zap.String("regexp", attribute.Validate),
+				zap.String("value", ret))
+			ret = ""
+		}
 	}
 	return id, ret
 }
@@ -348,6 +363,7 @@ func (c *Config) MatchProfile(log *zap.Logger, rl plog.ResourceLogs, ils plog.Sc
 		req := newStreamTokenReq()
 		gen := ConfigResult{}
 		parser := Parser{
+			Log:   log,
 			Rattr: rl.Resource().Attributes(),
 			Attr:  lr.Attributes(),
 			Body:  lr.Body(),
