@@ -1,4 +1,4 @@
-module code.eng.sciencelogic.com/ae/otc/awstimestreamexporter
+module github.sciencelogic.com/Analytics-Platform/otc/awstimestreamexporter
 
 go 1.20
 
