@@ -27,7 +27,7 @@ func getTestDataSet() (pmetric.Metrics, []types.Record) {
 	nanoTestTimestamp := strconv.FormatUint(uint64(testTimestamp), 10)
 	dimensions := map[string]string{"name1": "value1", "name2": "value2"}
 	dimKeys := []string{}
-	for key, _ := range dimensions {
+	for key := range dimensions {
 		dimKeys = append(dimKeys, key)
 	}
 	dimValue0 := dimensions[dimKeys[0]]
@@ -119,6 +119,7 @@ func getTestDataSet() (pmetric.Metrics, []types.Record) {
 	return md, records
 }
 
+/*
 func getSimpleTestDataSet() (pmetric.Metrics, []types.Record) {
 	testTimestamp := pcommon.Timestamp(time.Date(2022, 11, 10, 00, 00, 0, 0, time.UTC).UnixNano())
 	nanoTestTimestamp := strconv.FormatUint(uint64(testTimestamp), 10)
@@ -168,6 +169,7 @@ func getSimpleTestDataSet() (pmetric.Metrics, []types.Record) {
 
 	return md, records
 }
+*/
 
 func TestConvertMetricsToRecords(t *testing.T) {
 	e := createExporter(
