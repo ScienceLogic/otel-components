@@ -1,6 +1,6 @@
 module github.sciencelogic.com/product-engineering/ze-otel/slzebriumexporter
 
-go 1.18
+go 1.21.5
 
 require (
 	github.com/stretchr/testify v1.8.4
@@ -29,7 +29,8 @@ require (
 	github.com/hashicorp/go-version v1.6.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.17.4 // indirect
-	github.com/knadh/koanf v1.4.5 // indirect
+	github.com/knadh/koanf/maps v0.1.1 // indirect
+	github.com/knadh/koanf/providers/confmap v0.1.0 // indirect
 	github.com/knadh/koanf/v2 v2.0.1 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.1-0.20220423185008-bf980b35cac4 // indirect
