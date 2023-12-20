@@ -63,16 +63,16 @@ func TestUnmarshalConfig(t *testing.T) {
 						Exp: &ConfigExpression{
 							Op: "lc",
 							Exps: []*ConfigExpression{
-								&ConfigExpression{
+								{
 									Op: "alphanum",
 									Exps: []*ConfigExpression{
-										&ConfigExpression{
+										{
 											Op: "rmprefix",
 											Exps: []*ConfigExpression{
-												&ConfigExpression{
+												{
 													Source: "body:provider.name",
 												},
-												&ConfigExpression{
+												{
 													Source: "lit:Microsoft-Windows-",
 												},
 											},
@@ -84,13 +84,13 @@ func TestUnmarshalConfig(t *testing.T) {
 						Rename: "logbasename",
 					},
 					Labels: []*ConfigAttribute{
-						&ConfigAttribute{
+						{
 							Exp: &ConfigExpression{
 								Source: "body:channel",
 							},
 							Rename: "win_channel",
 						},
-						&ConfigAttribute{
+						{
 							Exp: &ConfigExpression{
 								Source: "body:keywords",
 							},
@@ -101,13 +101,13 @@ func TestUnmarshalConfig(t *testing.T) {
 						Exp: &ConfigExpression{
 							Op: "or",
 							Exps: []*ConfigExpression{
-								&ConfigExpression{
+								{
 									Source: "body:message",
 								},
-								&ConfigExpression{
+								{
 									Source: "body:event_data",
 								},
-								&ConfigExpression{
+								{
 									Source: "body:keywords",
 								},
 							},
