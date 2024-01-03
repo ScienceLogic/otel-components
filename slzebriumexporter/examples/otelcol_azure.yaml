@@ -1,0 +1,47 @@
+receivers:
+  azureeventhub:
+    connection: Endpoint=sb://alannamespace.servicebus.windows.net/;SharedAccessKeyName=Listener;SharedAccessKey=OxiXco3aMe9aJ7T9i6wfYPqqbX3HWno3Z+AEhIyiv5A=;EntityPath=alaneventhub
+    format: azure
+
+processors:
+  sllogformat:
+    send_batch_size: 10000
+    timeout: 10s
+    profiles:
+    - service_group: # azure audit log
+        exp:
+          source: lit:default
+        rename: ze_deployment_name
+      host:
+        exp:
+          source: attr:azure.tenant.id
+        rename: host
+      logbasename:
+        exp:
+          op: lc
+          exps:
+            - source: attr:azure.category
+        rename: logbasename
+      message:
+        exp:
+          op: and
+          exps:
+            - op: replace
+              exps:
+                - source: attr:azure.operation.name
+                - source: "lit:/"
+                - source: "lit: "
+            - source: attr:azure.result.type
+            - source: attr:azure.properties.entity
+      format: event
+
+exporters:
+  logging:
+    verbosity: detailed
+
+service:
+  pipelines:
+    logs:
+      receivers: [azureeventhub]
+      processors: [sllogformat]
+      exporters: [logging]
