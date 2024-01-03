@@ -1,0 +1,38 @@
+timeout: 10s
+send_batch_size: 10000
+send_batch_max_size: 11000
+profiles:
+    - service_group: # windows event log
+        exp:
+          source: lit:default
+        rename: ze_deployment_name
+      host:
+        exp:
+          source: body:computer
+        rename: host
+      logbasename:
+        exp:
+          op: lc
+          exps:
+          - op: alphanum
+            exps:
+              - op: rmprefix
+                exps:
+                  - source: body:provider.name
+                  - source: lit:Microsoft-Windows-
+        rename: logbasename
+      labels:
+      - exp:
+          source: body:channel
+        rename: win_channel
+      - exp:
+          source: body:keywords
+        rename: win_keywords
+      message:
+        exp:
+          op: or
+          exps:
+            - source: body:message
+            - source: body:event_data
+            - source: body:keywords
+      format: event
