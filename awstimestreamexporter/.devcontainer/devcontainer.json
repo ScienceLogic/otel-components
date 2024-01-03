@@ -1,0 +1,12 @@
+{
+	"build": { "dockerfile": "Dockerfile" },
+	"name": "dev container",
+	"workspaceFolder": "/workspaces/otc/awstimestreamexporter",
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"golang.go"
+			]
+		}
+	}
+}
