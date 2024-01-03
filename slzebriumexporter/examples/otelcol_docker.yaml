@@ -1,0 +1,79 @@
+receivers:
+  filelog/containers:
+    include: [  "/var/lib/docker/containers/*/*.log" ]
+    start_at: end
+    include_file_path: true
+    include_file_name: false
+    operators:
+    - type: json_parser
+      id: parser-docker
+      output: extract_metadata_from_filepath
+      timestamp:
+        parse_from: attributes.time
+        layout: '%Y-%m-%dT%H:%M:%S.%LZ'
+    # Extract metadata from file path
+    - type: regex_parser
+      id: extract_metadata_from_filepath
+      regex: '^.*containers/(?P<container_id>[^_]+)/.*log$'
+      parse_from: attributes["log.file.path"]
+      output: parse_body
+    - type: move
+      id: parse_body
+      from: attributes.log
+      to: body
+      output: add_source
+    - type: add
+      id: add_source
+      field: resource["source"]
+      value: "docker"
+    - type: remove
+      id: time
+      field: attributes.time
+
+processors:
+  resourcedetection/system:
+    detectors: ["system"]
+    system:
+      hostname_sources: ["os"]
+  sllogformat:
+    send_batch_size: 10000
+    timeout: 10s
+    profiles:
+    - service_group: # docker logs
+        exp:
+          source: lit:default
+        rename: ze_deployment_name
+      host:
+        exp:
+          source: rattr:host.name
+        rename: host
+      logbasename:
+        exp:
+          source: attr:container_id
+        rename: logbasename
+      labels:
+      - exp:
+          source: rattr:os.type
+      - exp:
+          source: attr:log.file.path
+        rename: zid_path
+      message:
+        exp:
+          op: and
+          exps:
+          - source: body:timestamp
+          - source: body:log
+      format: container
+
+exporters:
+  slzebrium:
+    verbosity: detailed
+    endpoint: https://cloud.zebrium.com
+    ze_token: "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+
+service:
+  pipelines:
+    logs:
+      receivers: [filelog/containers]
+      processors: [resourcedetection/system,sllogformat]
+      exporters: [slzebrium]

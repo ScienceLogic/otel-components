@@ -1,0 +1,8 @@
+verbosity: detailed
+endpoint: https://cloud.zebrium.com
+ze_token: "0000000000000000000000000000000000000000"
+sending_queue:
+  queue_size: 5000
+retry_on_failure:
+  multiplier: 0
+  randomization_factor: 0
