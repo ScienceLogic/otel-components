@@ -18,9 +18,10 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/sciencelogic/otel-components/sllogformatprocessor/internal/testdata"
+
 	"github.com/stretchr/testify/assert"
 
-	"github.sciencelogic.com/product-engineering/ze-otel/sllogformatprocessor/internal/testdata"
 	"go.opentelemetry.io/collector/pdata/plog"
 )
 

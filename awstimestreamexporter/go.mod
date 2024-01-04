@@ -1,4 +1,4 @@
-module github.sciencelogic.com/Analytics-Platform/otc/awstimestreamexporter
+module github.com/sciencelogic/otel-components/awstimestreamexporter
 
 go 1.20
 
@@ -33,7 +33,6 @@ require (
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/hashicorp/go-version v1.6.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
-	github.com/knadh/koanf v1.5.0 // indirect
 	github.com/knadh/koanf/v2 v2.0.1 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.1-0.20220423185008-bf980b35cac4 // indirect

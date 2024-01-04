@@ -17,11 +17,11 @@ import (
 	"context"
 	"testing"
 
+	"github.com/sciencelogic/otel-components/slzebriumexporter/internal/testdata"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
-
-	"github.sciencelogic.com/product-engineering/ze-otel/slzebriumexporter/internal/testdata"
 
 	"go.opentelemetry.io/collector/config/confighttp"
 	"go.opentelemetry.io/collector/config/configopaque"

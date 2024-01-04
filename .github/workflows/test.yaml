@@ -1,0 +1,217 @@
+name: testing
+on:
+  push:
+    branches: [ main ]
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+*'
+  pull_request:
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+jobs:
+  setup-environment:
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    if: ${{ github.actor != 'dependabot[bot]' }}
+    steps:
+      - uses: actions/checkout@v3
+      - run: git config --system --add safe.directory $GITHUB_WORKSPACE
+      - uses: actions/setup-go@v3
+        with:
+          go-version: 1.21
+          cache: false
+      - name: Cache Go
+        id: go-cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/go/bin
+            ~/go/pkg/mod
+          key: go-cache-${{ runner.os }}-${{ hashFiles('**/go.sum') }}
+      - name: Cache Build Tools
+        id: go-tools-cache
+        uses: actions/cache@v3
+        with:
+          key: go-tools-cache-${{ runner.os }}-${{ hashFiles('internal/tools/go.sum') }}
+          path: .tools
+      - name: Install dependencies
+        run: make -j2 gomoddownload
+      - name: Install Tools
+        if: steps.go-tools-cache.outputs.cache-hit != 'true'
+        run: make install-tools
+      - name: Cache Build Tools
+        if: steps.go-tools-cache.outputs.cache-hit != 'true'
+        uses: actions/cache@v3
+        with:
+          key: go-tools-cache-${{ runner.os }}-${{ hashFiles('internal/tools/go.sum') }}
+          path: .tools
+  lint:
+    if: false
+    runs-on: ubuntu-latest
+    needs: [ setup-environment ]
+    steps:
+      - uses: actions/checkout@v3
+      - run: git config --system --add safe.directory $GITHUB_WORKSPACE
+      - uses: actions/setup-go@v3
+        with:
+          go-version: 1.21
+          cache: false
+      - name: Cache Go
+        id: go-cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/go/bin
+            ~/go/pkg/mod
+          key: go-cache-${{ runner.os }}-${{ hashFiles('**/go.sum') }}
+      - name: Cache Build Tools
+        id: go-tools-cache
+        uses: actions/cache@v3
+        with:
+          key: go-tools-cache-${{ runner.os }}-${{ hashFiles('internal/tools/go.sum') }}
+          path: .tools
+      - name: Install dependencies
+        if: steps.go-cache.outputs.cache-hit != 'true'
+        run: make -j2 gomoddownload
+      - name: Install Tools
+        if: steps.go-tools-cache.outputs.cache-hit != 'true'
+        run: make install-tools
+      - name: Lint
+        run: make -j2 golint
+  govulncheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: git config --system --add safe.directory $GITHUB_WORKSPACE
+      - uses: actions/setup-go@v3
+        with:
+          go-version: 1.21
+          cache: false
+      - name: Cache Go
+        id: go-cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/go/bin
+            ~/go/pkg/mod
+          key: go-cache-${{ runner.os }}-${{ hashFiles('internal/tools/**/go.sum') }}
+      - name: Cache Build Tools
+        id: go-tools-cache
+        uses: actions/cache@v3
+        with:
+          key: go-tools-cache-${{ runner.os }}-${{ hashFiles('internal/tools/go.sum') }}
+          path: .tools
+      - name: Install dependencies
+        if: steps.go-cache.outputs.cache-hit != 'true'
+        run: make -j2 gomoddownload
+      - name: Install Tools
+        if: steps.go-tools-cache.outputs.cache-hit != 'true'
+        run: make install-tools
+      - name: vulscan
+        run: make -j2 gogovulncheck
+  checks:
+    runs-on: ubuntu-latest
+    needs: [ setup-environment ]
+    steps:
+      - uses: actions/checkout@v3
+      - run: git config --system --add safe.directory $GITHUB_WORKSPACE
+      - uses: actions/setup-go@v3
+        with:
+          go-version: 1.21
+          cache: false
+      - name: Cache Go
+        id: go-cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/go/bin
+            ~/go/pkg/mod
+          key: go-cache-${{ runner.os }}-${{ hashFiles('internal/tools/**/go.sum') }}
+      - name: Cache Build Tools
+        id: go-tools-cache
+        uses: actions/cache@v3
+        with:
+          key: go-tools-cache-${{ runner.os }}-${{ hashFiles('internal/tools/go.sum') }}
+          path: .tools
+      - name: Install dependencies
+        if: steps.go-cache.outputs.cache-hit != 'true'
+        run: make -j2 gomoddownload
+      - name: Install Tools
+        if: steps.go-tools-cache.outputs.cache-hit != 'true'
+        run: make install-tools
+      - name: Check for go mod dependency changes
+        run: |
+          make gotidy
+          git diff --exit-code || (echo 'go.mod/go.sum deps changes detected, please run "make gotidy" and commit the changes in this PR.' && exit 1)
+  unittest-matrix:
+    if: ${{ github.actor != 'dependabot[bot]' && always() }}
+    runs-on: ubuntu-latest
+    needs: [ setup-environment ]
+    strategy:
+      matrix:
+        group:
+          - all
+        go-version: [ 1.21 ] # 1.20 is interpreted as 1.2 without quote
+    steps:
+      - uses: actions/checkout@v3
+      - run: git config --system --add safe.directory $GITHUB_WORKSPACE
+      - uses: actions/setup-go@v3
+        with:
+          go-version: ${{ matrix.go-version }}
+          cache: false
+      - name: Cache Go
+        id: go-cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/go/bin
+            ~/go/pkg/mod
+          key: go-cache-${{ runner.os }}-${{ hashFiles('internal/tools/**/go.sum') }}
+      - name: Install dependencies
+        if: steps.go-cache.outputs.cache-hit != 'true'
+        run: make -j2 gomoddownload
+      - name: Cache Build Tools
+        id: go-tools-cache
+        uses: actions/cache@v3
+        with:
+          key: go-tools-cache-${{ runner.os }}-${{ hashFiles('internal/tools/go.sum') }}
+          path: .tools
+      - name: Install Tools
+        if: steps.go-tools-cache.outputs.cache-hit != 'true'
+        run: make install-tools
+      - name: Run Unit Tests
+        if: ${{ matrix.go-version == '1.21' }}
+        run: make gotest GROUP=${{ matrix.group }}
+      - name: Run Unit Tests With Coverage
+        if: ${{ matrix.go-version == '1.21' }} # only run coverage on one version
+        run: make gotest-with-cover GROUP=${{ matrix.group }}
+      - uses: actions/upload-artifact@v3
+        if: ${{ matrix.go-version == '1.21' }} # only run coverage on one version
+        with:
+          name: coverage-artifacts
+          path: coverage/unit/*.out
+      - uses: actions/upload-artifact@v3
+        if: ${{ matrix.go-version == '1.21' }} # only run coverage on one version
+        with:
+          name: testing-artifacts
+          path: testing/result/*.xml
+  unittest:
+    if: ${{ github.actor != 'dependabot[bot]' && always() }}
+    strategy:
+      matrix:
+        go-version: [ 1.21 ] # 1.20 is interpreted as 1.2 without quotes
+    runs-on: ubuntu-latest
+    needs: [ setup-environment, unittest-matrix ]
+    steps:
+      - name: Print result
+        run: echo ${{ needs.unittest-matrix.result }}
+      - name: Interpret result
+        shell: bash
+        run: |
+          if [[ success == ${{ needs.unittest-matrix.result }} ]]
+          then
+            echo "All matrix jobs passed!"
+          else
+            echo "One or more matrix jobs failed."
+            false
+          fi
