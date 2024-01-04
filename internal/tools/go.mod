@@ -10,7 +10,7 @@ require (
 	github.com/golangci/golangci-lint v1.55.2
 	github.com/jcchavezs/porto v0.4.0
 	golang.org/x/tools v0.16.1
-	golang.org/x/vuln v0.1.0
+	golang.org/x/vuln v1.0.1
 	gotest.tools/gotestsum v1.10.1
 )
 
