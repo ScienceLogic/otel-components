@@ -1,7 +1,7 @@
 # very simplified version of https://github.com/open-telemetry/opentelemetry-collector-releases/blob/main/Makefile
 include ./Makefile.Common
 #variables
-OTEL_COl_VER?=v0.76.0
+OTEL_COl_VER?=v0.91.0
 DOCKER_TAG?=0.0.0-$(VERSION)
 GROUP?=all
 PACKAGE_NAME := github.com/sciencelogic/otel-components
