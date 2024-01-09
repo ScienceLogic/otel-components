@@ -52,9 +52,6 @@ gofmt:
 golint:
 	$(MAKE) $(FOR_GROUP_TARGET) TARGET="lint"
 
-.PHONY: gogovulncheck
-gogovulncheck:
-	$(MAKE) $(FOR_GROUP_TARGET) TARGET="govulncheck"
 
 .PHONY: goporto
 goporto: $(PORTO)
