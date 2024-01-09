@@ -16,6 +16,5 @@ import (
 	_ "github.com/daixiang0/gci"
 	_ "github.com/jcchavezs/porto/cmd/porto"
 	_ "golang.org/x/tools/cmd/goimports"
-	_ "golang.org/x/vuln/cmd/govulncheck"
 	_ "gotest.tools/gotestsum"
 )
