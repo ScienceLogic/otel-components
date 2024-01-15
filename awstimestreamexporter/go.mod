@@ -7,10 +7,10 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/timestreamwrite v1.23.7
 	github.com/aws/smithy-go v1.19.0
 	github.com/stretchr/testify v1.8.4
-	go.opentelemetry.io/collector/component v0.91.0
-	go.opentelemetry.io/collector/confmap v0.91.0
-	go.opentelemetry.io/collector/exporter v0.91.0
-	go.opentelemetry.io/collector/pdata v1.0.0
+	go.opentelemetry.io/collector/component v0.92.0
+	go.opentelemetry.io/collector/confmap v0.92.0
+	go.opentelemetry.io/collector/exporter v0.92.0
+	go.opentelemetry.io/collector/pdata v1.0.1
 	go.uber.org/zap v1.26.0
 )
 
@@ -43,11 +43,12 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	go.opencensus.io v0.24.0 // indirect
-	go.opentelemetry.io/collector v0.91.0 // indirect
-	go.opentelemetry.io/collector/config/configtelemetry v0.91.0 // indirect
-	go.opentelemetry.io/collector/consumer v0.91.0 // indirect
-	go.opentelemetry.io/collector/extension v0.91.0 // indirect
-	go.opentelemetry.io/collector/featuregate v1.0.0 // indirect
+	go.opentelemetry.io/collector v0.92.0 // indirect
+	go.opentelemetry.io/collector/config/configretry v0.92.0 // indirect
+	go.opentelemetry.io/collector/config/configtelemetry v0.92.0 // indirect
+	go.opentelemetry.io/collector/consumer v0.92.0 // indirect
+	go.opentelemetry.io/collector/extension v0.92.0 // indirect
+	go.opentelemetry.io/collector/featuregate v1.0.1 // indirect
 	go.opentelemetry.io/otel v1.21.0 // indirect
 	go.opentelemetry.io/otel/metric v1.21.0 // indirect
 	go.opentelemetry.io/otel/trace v1.21.0 // indirect
@@ -56,7 +57,7 @@ require (
 	golang.org/x/sys v0.16.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20231030173426-d783a09b4405 // indirect
-	google.golang.org/grpc v1.59.0 // indirect
-	google.golang.org/protobuf v1.31.0 // indirect
+	google.golang.org/grpc v1.60.1 // indirect
+	google.golang.org/protobuf v1.32.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
