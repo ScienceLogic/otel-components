@@ -21,7 +21,7 @@ jobs:
           cache: false
       - name: Cache Go
         id: go-cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ~/go/bin
@@ -29,7 +29,7 @@ jobs:
           key: go-cache-${{ runner.os }}-${{ hashFiles('**/go.sum') }}
       - name: Cache Build Tools
         id: go-tools-cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           key: go-tools-cache-${{ runner.os }}-${{ hashFiles('internal/tools/go.sum') }}
           path: .tools
@@ -40,7 +40,7 @@ jobs:
         run: make install-tools
       - name: Cache Build Tools
         if: steps.go-tools-cache.outputs.cache-hit != 'true'
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           key: go-tools-cache-${{ runner.os }}-${{ hashFiles('internal/tools/go.sum') }}
           path: .tools
@@ -55,7 +55,7 @@ jobs:
           cache: false
       - name: Cache Go
         id: go-cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ~/go/bin
@@ -63,7 +63,7 @@ jobs:
           key: go-cache-${{ runner.os }}-${{ hashFiles('internal/tools/**/go.sum') }}
       - name: Cache Build Tools
         id: go-tools-cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           key: go-tools-cache-${{ runner.os }}-${{ hashFiles('internal/tools/go.sum') }}
           path: .tools
@@ -94,7 +94,7 @@ jobs:
           cache: false
       - name: Cache Go
         id: go-cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ~/go/bin
@@ -105,7 +105,7 @@ jobs:
         run: make -j2 gomoddownload
       - name: Cache Build Tools
         id: go-tools-cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           key: go-tools-cache-${{ runner.os }}-${{ hashFiles('internal/tools/go.sum') }}
           path: .tools
