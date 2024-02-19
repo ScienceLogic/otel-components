@@ -6,7 +6,7 @@ toolchain go1.21.5
 
 require (
 	github.com/client9/misspell v0.3.4
-	github.com/daixiang0/gci v0.12.1
+	github.com/daixiang0/gci v0.12.3
 	github.com/jcchavezs/porto v0.6.0
 	golang.org/x/tools v0.16.1
 	gotest.tools/gotestsum v1.11.0
