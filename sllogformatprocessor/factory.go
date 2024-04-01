@@ -23,10 +23,10 @@ import (
 	"go.opentelemetry.io/collector/processor"
 )
 
-const (
-	// The value of "type" key in configuration.
-	typeStr = "sllogformat"
+// The value of "type" key in configuration.
+var componentType = component.MustNewType("sllogformat")
 
+const (
 	defaultSendBatchSize = uint32(8192)
 	defaultTimeout       = 200 * time.Millisecond
 )
@@ -34,7 +34,7 @@ const (
 // NewFactory returns a new factory for the Batch processor.
 func NewFactory() processor.Factory {
 	return processor.NewFactory(
-		typeStr,
+		componentType,
 		createDefaultConfig,
 		processor.WithLogs(createLogs, component.StabilityLevelStable))
 }

@@ -33,6 +33,7 @@ const (
 )
 
 var (
+	typeStr                  = componentType.String()
 	processorKey             = "processor"
 	processorTagKey          = tag.MustNewKey(processorKey)
 	statBatchSizeTriggerSend = stats.Int64("batch_size_trigger_send", "Number of times the batch was sent due to a size trigger", stats.UnitDimensionless)
