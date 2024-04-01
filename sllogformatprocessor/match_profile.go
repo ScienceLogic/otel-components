@@ -116,6 +116,35 @@ var sevTextMap map[string]plog.SeverityNumber = map[string]plog.SeverityNumber{
 	"0":             plog.SeverityNumberFatal,
 }
 
+var sevText2Num map[string]plog.SeverityNumber = map[string]plog.SeverityNumber{
+	"Unspecified": plog.SeverityNumberUnspecified,
+	"Trace":       plog.SeverityNumberTrace,
+	"Trace2":      plog.SeverityNumberTrace2,
+	"Trace3":      plog.SeverityNumberTrace3,
+	"Trace4":      plog.SeverityNumberTrace4,
+	"Debug":       plog.SeverityNumberDebug,
+	"Debug2":      plog.SeverityNumberDebug2,
+	"Debug3":      plog.SeverityNumberDebug3,
+	"Debug4":      plog.SeverityNumberDebug4,
+	"Info":        plog.SeverityNumberInfo,
+	"Information": plog.SeverityNumberInfo,
+	"Info2":       plog.SeverityNumberInfo2,
+	"Info3":       plog.SeverityNumberInfo3,
+	"Info4":       plog.SeverityNumberInfo4,
+	"Warn":        plog.SeverityNumberWarn,
+	"Warn2":       plog.SeverityNumberWarn2,
+	"Warn3":       plog.SeverityNumberWarn3,
+	"Warn4":       plog.SeverityNumberWarn4,
+	"Error":       plog.SeverityNumberError,
+	"Error2":      plog.SeverityNumberError2,
+	"Error3":      plog.SeverityNumberError3,
+	"Error4":      plog.SeverityNumberError4,
+	"Fatal":       plog.SeverityNumberFatal,
+	"Fatal2":      plog.SeverityNumberFatal2,
+	"Fatal3":      plog.SeverityNumberFatal3,
+	"Fatal4":      plog.SeverityNumberFatal4,
+}
+
 type Operator func(string, string) string
 
 var ops map[string]Operator = map[string]Operator{
@@ -265,7 +294,7 @@ func (p *Parser) evalExp(exp *ConfigExpression) (string, string) {
 				_, ret2 = p.evalExp(exp2)
 				switch exp.Op {
 				case CfgOpAnd:
-					ret += ret2
+					ret += ` ` + ret2
 				case CfgOpOr:
 					if ret == "" {
 						ret = ret2
@@ -381,6 +410,12 @@ func (c *Config) MatchProfile(log *zap.Logger, rl plog.ResourceLogs, ils plog.Sc
 		id, gen.Logbasename = parser.EvalElem(profile.Logbasename)
 		if gen.Logbasename == "" {
 			continue
+		}
+		if lr.SeverityNumber() == plog.SeverityNumberUnspecified {
+			sevNum, ok := sevText2Num[lr.SeverityText()]
+			if ok {
+				lr.SetSeverityNumber(sevNum)
+			}
 		}
 		if profile.Severity != nil {
 			_, sevText := parser.EvalElem(profile.Severity)
