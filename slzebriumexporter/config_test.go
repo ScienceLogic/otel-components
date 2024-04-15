@@ -24,6 +24,7 @@ import (
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/config/confighttp"
 	"go.opentelemetry.io/collector/config/configopaque"
+	"go.opentelemetry.io/collector/config/configretry"
 	"go.opentelemetry.io/collector/config/configtelemetry"
 	"go.opentelemetry.io/collector/confmap"
 	"go.opentelemetry.io/collector/confmap/confmaptest"
@@ -46,7 +47,7 @@ func TestUnmarshalConfig(t *testing.T) {
 		{
 			filename: "config_verbosity.yaml",
 			cfg: &Config{
-				RetrySettings: exporterhelper.RetrySettings{
+				BackOffConfig: configretry.BackOffConfig{
 					Enabled:         true,
 					InitialInterval: 5000000000,
 					MaxInterval:     30000000000,
@@ -57,7 +58,7 @@ func TestUnmarshalConfig(t *testing.T) {
 					NumConsumers: 10,
 					QueueSize:    5000,
 				},
-				HTTPClientSettings: confighttp.HTTPClientSettings{
+				ClientConfig: confighttp.ClientConfig{
 					Endpoint:        "https://cloud.zebrium.com",
 					WriteBufferSize: 524288,
 					Timeout:         30000000000,
@@ -99,7 +100,7 @@ func TestValidate(t *testing.T) {
 		{
 			name: "invalid queue settings",
 			cfg: &Config{
-				RetrySettings: exporterhelper.RetrySettings{
+				BackOffConfig: configretry.BackOffConfig{
 					Enabled:         true,
 					InitialInterval: 5000000000,
 					MaxInterval:     30000000000,
@@ -110,7 +111,7 @@ func TestValidate(t *testing.T) {
 					NumConsumers: 10,
 					QueueSize:    0,
 				},
-				HTTPClientSettings: confighttp.HTTPClientSettings{
+				ClientConfig: confighttp.ClientConfig{
 					Endpoint:        "https://cloud.zebrium.com",
 					WriteBufferSize: 524288,
 					Timeout:         30000000000,
@@ -124,7 +125,7 @@ func TestValidate(t *testing.T) {
 		{
 			name: "invalid endpoint",
 			cfg: &Config{
-				RetrySettings: exporterhelper.RetrySettings{
+				BackOffConfig: configretry.BackOffConfig{
 					Enabled:         true,
 					InitialInterval: 5000000000,
 					MaxInterval:     30000000000,
@@ -135,7 +136,7 @@ func TestValidate(t *testing.T) {
 					NumConsumers: 10,
 					QueueSize:    5000,
 				},
-				HTTPClientSettings: confighttp.HTTPClientSettings{
+				ClientConfig: confighttp.ClientConfig{
 					Endpoint:        "bad//url?",
 					WriteBufferSize: 524288,
 					Timeout:         30000000000,
@@ -149,7 +150,7 @@ func TestValidate(t *testing.T) {
 		{
 			name: "invalid verbosity",
 			cfg: &Config{
-				RetrySettings: exporterhelper.RetrySettings{
+				BackOffConfig: configretry.BackOffConfig{
 					Enabled:         true,
 					InitialInterval: 5000000000,
 					MaxInterval:     30000000000,
@@ -160,7 +161,7 @@ func TestValidate(t *testing.T) {
 					NumConsumers: 10,
 					QueueSize:    5000,
 				},
-				HTTPClientSettings: confighttp.HTTPClientSettings{
+				ClientConfig: confighttp.ClientConfig{
 					Endpoint:        "https://cloud.zebrium.com",
 					WriteBufferSize: 524288,
 					Timeout:         30000000000,
@@ -174,7 +175,7 @@ func TestValidate(t *testing.T) {
 		{
 			name: "invalid ze_token",
 			cfg: &Config{
-				RetrySettings: exporterhelper.RetrySettings{
+				BackOffConfig: configretry.BackOffConfig{
 					Enabled:         true,
 					InitialInterval: 5000000000,
 					MaxInterval:     30000000000,
@@ -185,7 +186,7 @@ func TestValidate(t *testing.T) {
 					NumConsumers: 10,
 					QueueSize:    5000,
 				},
-				HTTPClientSettings: confighttp.HTTPClientSettings{
+				ClientConfig: confighttp.ClientConfig{
 					Endpoint:        "https://cloud.zebrium.com",
 					WriteBufferSize: 524288,
 					Timeout:         30000000000,
@@ -199,7 +200,7 @@ func TestValidate(t *testing.T) {
 		{
 			name: "config valid",
 			cfg: &Config{
-				RetrySettings: exporterhelper.RetrySettings{
+				BackOffConfig: configretry.BackOffConfig{
 					Enabled:         true,
 					InitialInterval: 5000000000,
 					MaxInterval:     30000000000,
@@ -210,7 +211,7 @@ func TestValidate(t *testing.T) {
 					NumConsumers: 10,
 					QueueSize:    5000,
 				},
-				HTTPClientSettings: confighttp.HTTPClientSettings{
+				ClientConfig: confighttp.ClientConfig{
 					Endpoint:        "https://cloud.zebrium.com",
 					WriteBufferSize: 524288,
 					Timeout:         30000000000,

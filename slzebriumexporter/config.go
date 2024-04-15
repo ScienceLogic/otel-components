@@ -41,9 +41,9 @@ var (
 
 // Config defines configuration for slzebrium exporter.
 type Config struct {
-	confighttp.HTTPClientSettings `mapstructure:",squash"`
-	exporterhelper.QueueSettings  `mapstructure:"sending_queue"`
-	configretry.BackOffConfig     `mapstructure:"retry_on_failure"`
+	confighttp.ClientConfig      `mapstructure:",squash"`
+	exporterhelper.QueueSettings `mapstructure:"sending_queue"`
+	configretry.BackOffConfig    `mapstructure:"retry_on_failure"`
 
 	// Verbosity defines the zebrium exporter verbosity.
 	Verbosity configtelemetry.Level `mapstructure:"verbosity"`
