@@ -25,6 +25,7 @@ import (
 
 	"go.opentelemetry.io/collector/config/confighttp"
 	"go.opentelemetry.io/collector/config/configopaque"
+	"go.opentelemetry.io/collector/config/configretry"
 	"go.opentelemetry.io/collector/config/configtelemetry"
 	"go.opentelemetry.io/collector/exporter/exporterhelper"
 	"go.opentelemetry.io/collector/exporter/exportertest"
@@ -45,7 +46,7 @@ func TestLoggingZebriumExporterNoErrors(t *testing.T) {
 
 func TestLoggingExporterErrors(t *testing.T) {
 	cfg := &Config{
-		RetrySettings: exporterhelper.RetrySettings{
+		BackOffConfig: configretry.BackOffConfig{
 			Enabled:         true,
 			InitialInterval: 5000000000,
 			MaxInterval:     30000000000,
@@ -56,7 +57,7 @@ func TestLoggingExporterErrors(t *testing.T) {
 			NumConsumers: 10,
 			QueueSize:    5000,
 		},
-		HTTPClientSettings: confighttp.HTTPClientSettings{
+		ClientConfig: confighttp.ClientConfig{
 			Endpoint:        "https://cloud.zebrium.com",
 			WriteBufferSize: 524288,
 			Timeout:         30000000000,

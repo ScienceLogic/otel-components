@@ -24,8 +24,8 @@ import (
 
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/config/confighttp"
+	"go.opentelemetry.io/collector/config/configretry"
 	"go.opentelemetry.io/collector/config/configtelemetry"
-	"go.opentelemetry.io/collector/confmap"
 	"go.opentelemetry.io/collector/exporter/exporterhelper"
 )
 
@@ -41,9 +41,9 @@ var (
 
 // Config defines configuration for slzebrium exporter.
 type Config struct {
-	confighttp.HTTPClientSettings `mapstructure:",squash"` // squash ensures fields are correctly decoded in embedded struct.
-	exporterhelper.QueueSettings  `mapstructure:"sending_queue"`
-	exporterhelper.RetrySettings  `mapstructure:"retry_on_failure"`
+	confighttp.ClientConfig      `mapstructure:",squash"`
+	exporterhelper.QueueSettings `mapstructure:"sending_queue"`
+	configretry.BackOffConfig    `mapstructure:"retry_on_failure"`
 
 	// Verbosity defines the zebrium exporter verbosity.
 	Verbosity configtelemetry.Level `mapstructure:"verbosity"`
@@ -53,7 +53,6 @@ type Config struct {
 }
 
 var _ component.Config = (*Config)(nil)
-var _ confmap.Unmarshaler = (*Config)(nil)
 
 func mapLevel(level zapcore.Level) (configtelemetry.Level, error) {
 	switch level {
@@ -68,13 +67,6 @@ func mapLevel(level zapcore.Level) (configtelemetry.Level, error) {
 	default:
 		return configtelemetry.LevelNone, fmt.Errorf("log level %q is not supported", level)
 	}
-}
-
-func (cfg *Config) Unmarshal(conf *confmap.Conf) error {
-	if err := conf.Unmarshal(cfg, confmap.WithErrorUnused()); err != nil {
-		return err
-	}
-	return nil
 }
 
 func validateZeToken(token string) error {

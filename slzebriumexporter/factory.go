@@ -24,22 +24,24 @@ import (
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/config/confighttp"
 	"go.opentelemetry.io/collector/config/configopaque"
+	"go.opentelemetry.io/collector/config/configretry"
 	"go.opentelemetry.io/collector/config/configtelemetry"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/exporter"
 	"go.opentelemetry.io/collector/exporter/exporterhelper"
 )
 
+// The value of "type" key in configuration.
+var componentType = component.MustNewType("slzebrium")
+
 const (
-	// The value of "type" key in configuration.
-	typeStr      = "slzebrium"
 	defaultZeUrl = "https://cloud.zebrium.com"
 )
 
 // NewFactory creates a factory for Logging exporter
 func NewFactory() exporter.Factory {
 	return exporter.NewFactory(
-		typeStr,
+		componentType,
 		createDefaultConfig,
 		exporter.WithLogs(createZebriumExporter, component.StabilityLevelDevelopment),
 	)
@@ -47,14 +49,14 @@ func NewFactory() exporter.Factory {
 
 func createDefaultConfig() component.Config {
 	return &Config{
-		HTTPClientSettings: confighttp.HTTPClientSettings{
+		ClientConfig: confighttp.ClientConfig{
 			Endpoint: defaultZeUrl,
 			Timeout:  30 * time.Second,
 			Headers:  map[string]configopaque.String{},
 			// We almost read 0 bytes, so no need to tune ReadBufferSize.
 			WriteBufferSize: 512 * 1024,
 		},
-		RetrySettings: exporterhelper.NewDefaultRetrySettings(),
+		BackOffConfig: configretry.NewDefaultBackOffConfig(),
 		QueueSettings: exporterhelper.NewDefaultQueueSettings(),
 		Verbosity:     configtelemetry.LevelNormal,
 	}
@@ -69,7 +71,7 @@ func createZebriumExporter(ctx context.Context, set exporter.CreateSettings, con
 		exporterhelper.WithCapabilities(consumer.Capabilities{MutatesData: false}),
 		// Disable Timeout/RetryOnFailure and SendingQueue
 		exporterhelper.WithTimeout(exporterhelper.TimeoutSettings{Timeout: 0}),
-		exporterhelper.WithRetry(cfg.RetrySettings),
+		exporterhelper.WithRetry(cfg.BackOffConfig),
 		exporterhelper.WithQueue(cfg.QueueSettings),
 		exporterhelper.WithStart(s.start),
 		exporterhelper.WithShutdown(loggerSync(exporterLogger)),
