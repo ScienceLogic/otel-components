@@ -10,7 +10,7 @@ require (
 	github.com/aws/smithy-go v1.20.2
 	github.com/stretchr/testify v1.9.0
 	go.opentelemetry.io/collector/component v0.98.0
-	go.opentelemetry.io/collector/config/configretry v0.98.0
+	go.opentelemetry.io/collector/config/configretry v0.101.0
 	go.opentelemetry.io/collector/confmap v0.98.0
 	go.opentelemetry.io/collector/exporter v0.98.0
 	go.opentelemetry.io/collector/pdata v1.5.0
