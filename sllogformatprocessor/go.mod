@@ -1,12 +1,13 @@
 module github.com/sciencelogic/otel-components/sllogformatprocessor
 
 go 1.21
+toolchain go1.22.4
 
 require (
 	github.com/stretchr/testify v1.9.0
 	go.opencensus.io v0.24.0
 	go.opentelemetry.io/collector/component v0.98.0
-	go.opentelemetry.io/collector/config/configtelemetry v0.98.0
+	go.opentelemetry.io/collector/config/configtelemetry v0.103.0
 	go.opentelemetry.io/collector/confmap v0.98.0
 	go.opentelemetry.io/collector/consumer v0.98.0
 	go.opentelemetry.io/collector/pdata v1.5.0
