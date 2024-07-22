@@ -1,8 +1,7 @@
 module github.com/sciencelogic/otel-components/awstimestreamexporter
 
 go 1.21
-
-toolchain go1.21.5
+toolchain go1.22.5
 
 require (
 	github.com/aws/aws-sdk-go-v2/config v1.27.11
@@ -10,7 +9,7 @@ require (
 	github.com/aws/smithy-go v1.20.2
 	github.com/stretchr/testify v1.9.0
 	go.opentelemetry.io/collector/component v0.98.0
-	go.opentelemetry.io/collector/config/configretry v0.98.0
+	go.opentelemetry.io/collector/config/configretry v1.12.0
 	go.opentelemetry.io/collector/confmap v0.98.0
 	go.opentelemetry.io/collector/exporter v0.98.0
 	go.opentelemetry.io/collector/pdata v1.5.0
