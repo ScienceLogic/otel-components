@@ -15,6 +15,7 @@
 package sllogformatprocessor // import "github.com/open-telemetry/opentelemetry-collector-contrib/processor/sllogformatprocessor"
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -26,6 +27,8 @@ import (
 	"go.opentelemetry.io/collector/pdata/plog"
 	"go.uber.org/zap"
 )
+
+var skipLine = errors.New("skipping line: message body contains no printable characters; log line is empty. ")
 
 type StreamTokenReq struct {
 	Stream             string            `json:"stream"`
@@ -389,7 +392,7 @@ type ConfigResult struct {
 func (c *Config) MatchProfile(log *zap.Logger, rl plog.ResourceLogs, ils plog.ScopeLogs, lr plog.LogRecord) (*ConfigResult, *StreamTokenReq, error) {
 	var id, ret string
 	reasons := []string{}
-	for _, profile := range c.Profiles {
+	for idx, profile := range c.Profiles {
 		req := newStreamTokenReq()
 		gen := ConfigResult{}
 		parser := Parser{
@@ -452,6 +455,9 @@ func (c *Config) MatchProfile(log *zap.Logger, rl plog.ResourceLogs, ils plog.Sc
 		}
 		_, gen.Message = parser.EvalElem(profile.Message)
 		if gen.Message == "" {
+			if idx >= len(c.Profiles)-1 {
+				return nil, nil, skipLine
+			}
 			reasons = append(reasons, "message")
 			continue
 		}
@@ -483,8 +489,6 @@ func (c *Config) MatchProfile(log *zap.Logger, rl plog.ResourceLogs, ils plog.Sc
 				}
 			}
 		}
-		fmt.Printf("MSG bytes: %+v\n", []byte(gen.Message))
-		fmt.Printf("MSG string: %s\n", gen.Message)
 		gen.Format = profile.Format
 		return &gen, &req, nil
 	}

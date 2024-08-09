@@ -18,11 +18,15 @@ import (
 	"context"
 	"crypto/sha1"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"strings"
+	"unicode"
 
 	"go.uber.org/zap"
 
 	"go.opentelemetry.io/collector/consumer"
+	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/plog"
 )
 
@@ -100,7 +104,11 @@ func (bl *batchLogs) addToBatch(ld plog.Logs) {
 		rl.ScopeLogs().RemoveIf(func(ils plog.ScopeLogs) bool {
 			ils.LogRecords().RemoveIf(func(lr plog.LogRecord) bool {
 				gen, req, err := bl.cfg.MatchProfile(bl.log, rl, ils, lr)
-				if err != nil {
+				if err != nil && errors.Is(err, skipLine) {
+					bl.log.Warn("Failed to match profile",
+						zap.String("err", err.Error()))
+					return true
+				} else if err != nil {
 					bl.log.Error("Failed to match profile",
 						zap.String("err", err.Error()))
 					bl.dumpLogRecord(rl, ils, lr)
@@ -149,6 +157,19 @@ func (bl *batchLogs) addToBatch(ld plog.Logs) {
 		})
 		return true
 	})
+}
+
+func AsStringWithoutUnprintables(v pcommon.Value) string {
+	var ret string = v.AsString()
+	ret = strings.Map(func(r rune) rune {
+		if unicode.IsPrint(r) {
+			return r
+		} else if r == '\n' {
+			return ' '
+		}
+		return -1
+	}, ret)
+	return ret
 }
 
 func (bl *batchLogs) dumpLogRecord(rl plog.ResourceLogs, ils plog.ScopeLogs, lr plog.LogRecord) {
