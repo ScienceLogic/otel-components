@@ -34,7 +34,7 @@ import (
 
 func TestLoggingZebriumExporterNoErrors(t *testing.T) {
 	f := NewFactory()
-	lle, err := f.CreateLogsExporter(context.Background(), exportertest.NewNopCreateSettings(), f.CreateDefaultConfig())
+	lle, err := f.CreateLogsExporter(context.Background(), exportertest.NewNopSettings(), f.CreateDefaultConfig())
 	require.NotNil(t, lle)
 	assert.NoError(t, err)
 

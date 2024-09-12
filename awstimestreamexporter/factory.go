@@ -48,7 +48,7 @@ func createDefaultConfig() component.Config {
 // Define creation of metrics exporter which is invoked by the core collector code
 func createMetricsExporter(
 	ctx context.Context,
-	set exporter.CreateSettings,
+	set exporter.Settings,
 	cfg component.Config,
 ) (exporter.Metrics, error) {
 	c, ok := cfg.(*Config)

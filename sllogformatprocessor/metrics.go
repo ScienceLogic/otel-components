@@ -114,7 +114,7 @@ type slLogFormatProcessorTelemetry struct {
 	batchSendSizeBytes   metric.Int64Histogram
 }
 
-func newSlLogFormatProcessorTelemetry(set processor.CreateSettings, useOtel bool) (*slLogFormatProcessorTelemetry, error) {
+func newSlLogFormatProcessorTelemetry(set processor.Settings, useOtel bool) (*slLogFormatProcessorTelemetry, error) {
 	exportCtx, err := tag.New(context.Background(), tag.Insert(processorTagKey, set.ID.String()))
 	if err != nil {
 		return nil, err

@@ -39,7 +39,7 @@ func TestBatchProcessorSpansDelivered(t *testing.T) {
 		sink := new(consumertest.TracesSink)
 		cfg := createDefaultConfig().(*Config)
 		cfg.SendBatchSize = 128
-		creationSet := processortest.NewNopCreateSettings()
+		creationSet := processortest.NewNopSettings()
 		creationSet.MetricsLevel = configtelemetry.LevelDetailed
 		batcher, err := newBatchTracesProcessor(creationSet, sink, cfg, false)
 		require.NoError(t, err)
@@ -84,7 +84,7 @@ func TestBatchProcessorSpansDeliveredEnforceBatchSize(t *testing.T) {
 		cfg := createDefaultConfig().(*Config)
 		cfg.SendBatchSize = 128
 		cfg.SendBatchMaxSize = 130
-		creationSet := processortest.NewNopCreateSettings()
+		creationSet := processortest.NewNopSettings()
 		creationSet.MetricsLevel = configtelemetry.LevelDetailed
 		batcher, err := newBatchTracesProcessor(creationSet, sink, cfg, false)
 		require.NoError(t, err)
@@ -136,7 +136,7 @@ func testBatchProcessorSentBySize(t *testing.T, tel testTelemetry, useOtel bool)
 		sendBatchSize := 20
 		cfg.SendBatchSize = uint32(sendBatchSize)
 		cfg.Timeout = 500 * time.Millisecond
-		creationSet := tel.NewProcessorCreateSettings()
+		creationSet := tel.NewProcessorSettings()
 		creationSet.MetricsLevel = configtelemetry.LevelDetailed
 		batcher, err := newBatchTracesProcessor(creationSet, sink, cfg, useOtel)
 		require.NoError(t, err)
@@ -194,7 +194,7 @@ func testBatchProcessorSentBySizeWithMaxSize(t *testing.T, tel testTelemetry, us
 		cfg.SendBatchSize = uint32(sendBatchSize)
 		cfg.SendBatchMaxSize = uint32(sendBatchMaxSize)
 		cfg.Timeout = 500 * time.Millisecond
-		creationSet := tel.NewProcessorCreateSettings()
+		creationSet := tel.NewProcessorSettings()
 		creationSet.MetricsLevel = configtelemetry.LevelDetailed
 		batcher, err := newBatchTracesProcessor(creationSet, sink, cfg, useOtel)
 		require.NoError(t, err)
@@ -243,7 +243,7 @@ func TestBatchProcessorSentByTimeout(t *testing.T) {
 		spansPerRequest := 10
 		start := time.Now()
 
-		creationSet := processortest.NewNopCreateSettings()
+		creationSet := processortest.NewNopSettings()
 		creationSet.MetricsLevel = configtelemetry.LevelDetailed
 		batcher, err := newBatchTracesProcessor(creationSet, sink, cfg, false)
 		require.NoError(t, err)
@@ -292,7 +292,7 @@ func TestBatchProcessorTraceSendWhenClosing(t *testing.T) {
 			}
 			sink := new(consumertest.TracesSink)
 
-			creationSet := processortest.NewNopCreateSettings()
+			creationSet := processortest.NewNopSettings()
 			creationSet.MetricsLevel = configtelemetry.LevelDetailed
 			batcher, err := newBatchTracesProcessor(creationSet, sink, &cfg, false)
 			require.NoError(t, err)
@@ -323,7 +323,7 @@ func TestBatchProcessorTraceSendWhenClosing(t *testing.T) {
 			metricsPerRequest := 5
 			sink := new(consumertest.MetricsSink)
 
-			creationSet := processortest.NewNopCreateSettings()
+			creationSet := processortest.NewNopSettings()
 			creationSet.MetricsLevel = configtelemetry.LevelDetailed
 			batcher, err := newBatchMetricsProcessor(creationSet, sink, &cfg, false)
 			require.NoError(t, err)

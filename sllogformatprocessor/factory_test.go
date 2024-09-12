@@ -35,7 +35,7 @@ func TestCreateProcessor(t *testing.T) {
 	factory := NewFactory()
 
 	cfg := factory.CreateDefaultConfig()
-	creationSet := processortest.NewNopCreateSettings()
+	creationSet := processortest.NewNopSettings()
 	lp, err := factory.CreateLogsProcessor(context.Background(), creationSet, cfg, nil)
 	assert.NotNil(t, lp)
 	assert.NoError(t, err, "cannot create logs processor")

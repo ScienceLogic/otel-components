@@ -112,7 +112,7 @@ func (s *loggingExporter) pushLogs(_ context.Context, ld plog.Logs) error {
 }
 
 func (s *loggingExporter) start(ctx context.Context, host component.Host) error {
-	client, err := s.cfg.ClientConfig.ToClient(host, component.TelemetrySettings{Logger: s.log})
+	client, err := s.cfg.ClientConfig.ToClient(ctx, host, component.TelemetrySettings{Logger: s.log})
 	if err != nil {
 		return err
 	}

@@ -71,7 +71,7 @@ var _ consumer.Traces = (*slLogFormatProcessor)(nil)
 var _ consumer.Metrics = (*slLogFormatProcessor)(nil)
 var _ consumer.Logs = (*slLogFormatProcessor)(nil)
 
-func newSlLogFormatProcessor(set processor.CreateSettings, cfg *Config, batch batch, useOtel bool) (*slLogFormatProcessor, error) {
+func newSlLogFormatProcessor(set processor.Settings, cfg *Config, batch batch, useOtel bool) (*slLogFormatProcessor, error) {
 	bpt, err := newSlLogFormatProcessorTelemetry(set, useOtel)
 	if err != nil {
 		return nil, fmt.Errorf("error to create batch processor telemetry %w", err)
@@ -200,6 +200,6 @@ func (bp *slLogFormatProcessor) ConsumeLogs(_ context.Context, ld plog.Logs) err
 }
 
 // newBatchLogsProcessor creates a new batch processor that batches logs by size or with timeout
-func newBatchLogsProcessor(set processor.CreateSettings, next consumer.Logs, cfg *Config, useOtel bool) (*slLogFormatProcessor, error) {
+func newBatchLogsProcessor(set processor.Settings, next consumer.Logs, cfg *Config, useOtel bool) (*slLogFormatProcessor, error) {
 	return newSlLogFormatProcessor(set, cfg, newBatchLogs(set.Logger, cfg, next), useOtel)
 }
