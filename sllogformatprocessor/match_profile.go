@@ -15,7 +15,6 @@
 package sllogformatprocessor // import "github.com/open-telemetry/opentelemetry-collector-contrib/processor/sllogformatprocessor"
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -28,7 +27,11 @@ import (
 	"go.uber.org/zap"
 )
 
-var skipLine = errors.New("skipping line: message body contains no printable characters; log line is empty. ")
+type NoPrintablesError struct{}
+
+func (err *NoPrintablesError) Error() string {
+	return "log message has no printable characters"
+}
 
 type StreamTokenReq struct {
 	Stream             string            `json:"stream"`
@@ -404,19 +407,18 @@ func (c *Config) MatchProfile(log *zap.Logger, rl plog.ResourceLogs, ils plog.Sc
 		id, gen.ServiceGroup = parser.EvalElem(profile.ServiceGroup)
 		if gen.ServiceGroup == "" {
 			reasons = append(reasons, "service_group")
-			continue
+		} else {
+			req.Ids[id] = gen.ServiceGroup
 		}
-		req.Ids[id] = gen.ServiceGroup
 		id, gen.Host = parser.EvalElem(profile.Host)
 		if gen.Host == "" {
 			reasons = append(reasons, "host")
-			continue
+		} else {
+			req.Ids[id] = gen.Host
 		}
-		req.Ids[id] = gen.Host
 		id, gen.Logbasename = parser.EvalElem(profile.Logbasename)
 		if gen.Logbasename == "" {
 			reasons = append(reasons, "logbasename")
-			continue
 		}
 		if lr.SeverityNumber() == plog.SeverityNumberUnspecified {
 			sevNum, ok := sevText2Num[lr.SeverityText()]
@@ -428,27 +430,29 @@ func (c *Config) MatchProfile(log *zap.Logger, rl plog.ResourceLogs, ils plog.Sc
 			_, sevText := parser.EvalElem(profile.Severity)
 			if sevText == "" {
 				reasons = append(reasons, "severity")
-				continue
-			}
-			sevText = strings.ToUpper(sevText)
-			sevNum := plog.SeverityNumberUnspecified
-			sevNum, _ = sevTextMap[sevText]
-			if sevNum == plog.SeverityNumberUnspecified &&
-				len(sevText) == 3 {
-				// Interpret as HTTP status
-				switch sevText[0] {
-				case '1', '2':
-					sevNum = plog.SeverityNumberInfo
-				case '3':
-					sevNum = plog.SeverityNumberDebug
-				case '4', '5':
-					sevNum = plog.SeverityNumberError
+			} else {
+				sevText = strings.ToUpper(sevText)
+				sevNum := plog.SeverityNumberUnspecified
+				sevNum, _ = sevTextMap[sevText]
+				if sevNum == plog.SeverityNumberUnspecified &&
+					len(sevText) == 3 {
+					// Interpret as HTTP status
+					switch sevText[0] {
+					case '1', '2':
+						sevNum = plog.SeverityNumberInfo
+					case '3':
+						sevNum = plog.SeverityNumberDebug
+					case '4', '5':
+						sevNum = plog.SeverityNumberError
+					}
 				}
+				lr.SetSeverityNumber(sevNum)
 			}
-			lr.SetSeverityNumber(sevNum)
 		}
-		req.Ids[id] = gen.Logbasename
-		req.Logbasename = gen.Logbasename
+		if gen.Logbasename != "" {
+			req.Ids[id] = gen.Logbasename
+			req.Logbasename = gen.Logbasename
+		}
 		for _, label := range profile.Labels {
 			id, ret = parser.EvalElem(label)
 			req.Cfgs[id] = ret
@@ -456,7 +460,10 @@ func (c *Config) MatchProfile(log *zap.Logger, rl plog.ResourceLogs, ils plog.Sc
 		_, gen.Message = parser.EvalElem(profile.Message)
 		if gen.Message == "" {
 			if idx >= len(c.Profiles)-1 {
-				return nil, nil, skipLine
+				err_noprint := &NoPrintablesError{}
+				log.Warn("Failed to match profile",
+					zap.String("err", err_noprint.Error()))
+				return nil, nil, err_noprint
 			}
 			reasons = append(reasons, "message")
 			continue
@@ -492,5 +499,8 @@ func (c *Config) MatchProfile(log *zap.Logger, rl plog.ResourceLogs, ils plog.Sc
 		gen.Format = profile.Format
 		return &gen, &req, nil
 	}
-	return nil, nil, fmt.Errorf("No matching profile for log record, failed to find %v", reasons)
+	if len(reasons) > 0 {
+		return nil, nil, fmt.Errorf("no matching profile for log record, failed to find %s", strings.Join(reasons, ","))
+	}
+	return nil, nil, fmt.Errorf("No matching profile for log record")
 }
