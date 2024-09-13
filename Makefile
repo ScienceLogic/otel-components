@@ -26,7 +26,7 @@ all-groups:
 	@echo "\nall: $(ALL_MODS)"
 
 .PHONY: all
-all: install-tools gotidy gofmt gotest
+all: install-tools gotidy gofmt gogovulncheck gotest
 
 .PHONY: gotidy
 gotidy:
