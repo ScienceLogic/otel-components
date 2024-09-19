@@ -72,7 +72,7 @@ func TestUnmarshalConfig(t *testing.T) {
 		},
 		{
 			filename:    "invalid_verbosity_loglevel.yaml",
-			expectedErr: "1 error(s) decoding:\n\n* '' has invalid keys: loglevel",
+			expectedErr: "decoding failed due to the following error(s):\n\n'' has invalid keys: loglevel",
 		},
 	}
 
