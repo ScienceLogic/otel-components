@@ -15,7 +15,7 @@
 package sllogformatprocessor // import "github.com/open-telemetry/opentelemetry-collector-contrib/processor/sllogformatprocessor"
 import (
 	"encoding/json"
-	"errors"
+	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
@@ -26,6 +26,12 @@ import (
 	"go.opentelemetry.io/collector/pdata/plog"
 	"go.uber.org/zap"
 )
+
+type NoPrintablesError struct{}
+
+func (err *NoPrintablesError) Error() string {
+	return "log message has no printable characters"
+}
 
 type StreamTokenReq struct {
 	Stream             string            `json:"stream"`
@@ -388,7 +394,8 @@ type ConfigResult struct {
 
 func (c *Config) MatchProfile(log *zap.Logger, rl plog.ResourceLogs, ils plog.ScopeLogs, lr plog.LogRecord) (*ConfigResult, *StreamTokenReq, error) {
 	var id, ret string
-	for _, profile := range c.Profiles {
+	reasons := []string{}
+	for idx, profile := range c.Profiles {
 		req := newStreamTokenReq()
 		gen := ConfigResult{}
 		parser := Parser{
@@ -399,17 +406,19 @@ func (c *Config) MatchProfile(log *zap.Logger, rl plog.ResourceLogs, ils plog.Sc
 		}
 		id, gen.ServiceGroup = parser.EvalElem(profile.ServiceGroup)
 		if gen.ServiceGroup == "" {
-			continue
+			reasons = append(reasons, "service_group")
+		} else {
+			req.Ids[id] = gen.ServiceGroup
 		}
-		req.Ids[id] = gen.ServiceGroup
 		id, gen.Host = parser.EvalElem(profile.Host)
 		if gen.Host == "" {
-			continue
+			reasons = append(reasons, "host")
+		} else {
+			req.Ids[id] = gen.Host
 		}
-		req.Ids[id] = gen.Host
 		id, gen.Logbasename = parser.EvalElem(profile.Logbasename)
 		if gen.Logbasename == "" {
-			continue
+			reasons = append(reasons, "logbasename")
 		}
 		if lr.SeverityNumber() == plog.SeverityNumberUnspecified {
 			sevNum, ok := sevText2Num[lr.SeverityText()]
@@ -420,33 +429,43 @@ func (c *Config) MatchProfile(log *zap.Logger, rl plog.ResourceLogs, ils plog.Sc
 		if profile.Severity != nil {
 			_, sevText := parser.EvalElem(profile.Severity)
 			if sevText == "" {
-				continue
-			}
-			sevText = strings.ToUpper(sevText)
-			sevNum := plog.SeverityNumberUnspecified
-			sevNum, _ = sevTextMap[sevText]
-			if sevNum == plog.SeverityNumberUnspecified &&
-				len(sevText) == 3 {
-				// Interpret as HTTP status
-				switch sevText[0] {
-				case '1', '2':
-					sevNum = plog.SeverityNumberInfo
-				case '3':
-					sevNum = plog.SeverityNumberDebug
-				case '4', '5':
-					sevNum = plog.SeverityNumberError
+				reasons = append(reasons, "severity")
+			} else {
+				sevText = strings.ToUpper(sevText)
+				sevNum := plog.SeverityNumberUnspecified
+				sevNum, _ = sevTextMap[sevText]
+				if sevNum == plog.SeverityNumberUnspecified &&
+					len(sevText) == 3 {
+					// Interpret as HTTP status
+					switch sevText[0] {
+					case '1', '2':
+						sevNum = plog.SeverityNumberInfo
+					case '3':
+						sevNum = plog.SeverityNumberDebug
+					case '4', '5':
+						sevNum = plog.SeverityNumberError
+					}
 				}
+				lr.SetSeverityNumber(sevNum)
 			}
-			lr.SetSeverityNumber(sevNum)
 		}
-		req.Ids[id] = gen.Logbasename
-		req.Logbasename = gen.Logbasename
+		if gen.Logbasename != "" {
+			req.Ids[id] = gen.Logbasename
+			req.Logbasename = gen.Logbasename
+		}
 		for _, label := range profile.Labels {
 			id, ret = parser.EvalElem(label)
 			req.Cfgs[id] = ret
 		}
 		_, gen.Message = parser.EvalElem(profile.Message)
 		if gen.Message == "" {
+			if idx >= len(c.Profiles)-1 {
+				err_noprint := &NoPrintablesError{}
+				log.Warn("Failed to match profile",
+					zap.String("err", err_noprint.Error()))
+				return nil, nil, err_noprint
+			}
+			reasons = append(reasons, "message")
 			continue
 		}
 		// FORMAT MESSAGE
@@ -480,5 +499,8 @@ func (c *Config) MatchProfile(log *zap.Logger, rl plog.ResourceLogs, ils plog.Sc
 		gen.Format = profile.Format
 		return &gen, &req, nil
 	}
-	return nil, nil, errors.New("No matching profile for log record")
+	if len(reasons) > 0 {
+		return nil, nil, fmt.Errorf("no matching profile for log record, failed to find %s", strings.Join(reasons, ","))
+	}
+	return nil, nil, fmt.Errorf("No matching profile for log record")
 }

@@ -18,6 +18,7 @@ import (
 	"context"
 	"crypto/sha1"
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"go.uber.org/zap"
@@ -100,7 +101,9 @@ func (bl *batchLogs) addToBatch(ld plog.Logs) {
 		rl.ScopeLogs().RemoveIf(func(ils plog.ScopeLogs) bool {
 			ils.LogRecords().RemoveIf(func(lr plog.LogRecord) bool {
 				gen, req, err := bl.cfg.MatchProfile(bl.log, rl, ils, lr)
-				if err != nil {
+				if errors.Is(err, &NoPrintablesError{}) {
+					return true
+				} else if err != nil {
 					bl.log.Error("Failed to match profile",
 						zap.String("err", err.Error()))
 					bl.dumpLogRecord(rl, ils, lr)
