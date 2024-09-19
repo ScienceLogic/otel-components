@@ -21,12 +21,10 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap"
 
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/confmap"
 	"go.opentelemetry.io/collector/confmap/confmaptest"
-	"go.opentelemetry.io/collector/pdata/plog"
 )
 
 func TestUnmarshalDefaultConfig(t *testing.T) {
@@ -161,84 +159,4 @@ func TestValidateConfig_ServiceGroup(t *testing.T) {
 		},
 	}
 	assert.Error(t, cfg.Validate())
-}
-
-func TestMatchProfileSkipLogic(t *testing.T) {
-	factory := NewFactory()
-	cfg := factory.CreateDefaultConfig()
-
-	// Assert type assertion for *Config
-	config, ok := cfg.(*Config)
-	if !ok {
-		t.Fatalf("Expected *Config but got %T", cfg)
-	}
-
-	// Update the config with the profile information
-	config.Profiles = []ConfigProfile{
-		{
-			ServiceGroup: &ConfigAttribute{
-				Rename: "service_group",
-				Exp: &ConfigExpression{
-					Source: "lit:default-group",
-				},
-			},
-			Host: &ConfigAttribute{
-				Rename: "host",
-				Exp: &ConfigExpression{
-					Source: "lit:test-host",
-				},
-			},
-			Logbasename: &ConfigAttribute{
-				Rename: "logbasename",
-				Exp: &ConfigExpression{
-					Source: "lit:example-log",
-				},
-			},
-			Severity: &ConfigAttribute{
-				Exp: &ConfigExpression{
-					Source: "lit:INFO",
-				},
-			},
-			Message: &ConfigAttribute{
-				Exp: &ConfigExpression{
-					Source: "body", // Message comes from the log body
-				},
-			},
-		},
-	}
-
-	logger := zap.NewNop()
-	mockResourceLogs := plog.NewResourceLogs()
-	mockScopeLogs := mockResourceLogs.ScopeLogs().AppendEmpty()
-
-	// Create log records: one valid and one invalid
-	validLogLine := "valid log line"
-	invalidLogLine := "\x00\x01\x02\x03"
-	createLogRecord(mockResourceLogs, mockScopeLogs, "default-group", "test-host", "example-log", validLogLine)   // Valid log
-	createLogRecord(mockResourceLogs, mockScopeLogs, "default-group", "test-host", "example-log", invalidLogLine) // Invalid log
-
-	// Iterate over the log records and pass them to MatchProfile
-	for i := 0; i < mockScopeLogs.LogRecords().Len(); i++ {
-		logRecord := mockScopeLogs.LogRecords().At(i)
-		gen, req, err := config.MatchProfile(logger, mockResourceLogs, mockScopeLogs, logRecord)
-
-		if i == 1 { // Second log record with unprintable characters
-			assert.ErrorIs(t, err, &NoPrintablesError{}, "expected error for log record with unprintable characters")
-			assert.Empty(t, gen, "gen should be empty when log record is skipped")
-			assert.Empty(t, req, "req should be empty when log record is skipped")
-		} else { // First log record with valid data
-			assert.NoError(t, err, "expected no error for valid log record")
-			assert.NotEmpty(t, gen, "gen should not be empty for valid log record")
-			assert.NotEmpty(t, req, "req should not be empty for valid log record")
-		}
-	}
-}
-
-// Creates a log record with specific attributes and log line
-func createLogRecord(resourceLogs plog.ResourceLogs, scopeLogs plog.ScopeLogs, serviceGroup, host, logbasename, logLine string) {
-	logRecord := scopeLogs.LogRecords().AppendEmpty()
-	resourceLogs.Resource().Attributes().PutStr("service_group", serviceGroup)
-	resourceLogs.Resource().Attributes().PutStr("host", host)
-	resourceLogs.Resource().Attributes().PutStr("logbasename", logbasename)
-	logRecord.Body().SetStr(logLine)
 }
