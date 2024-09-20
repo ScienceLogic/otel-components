@@ -21,7 +21,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/config/confighttp"
 	"go.opentelemetry.io/collector/config/configopaque"
 	"go.opentelemetry.io/collector/config/configretry"
@@ -34,7 +33,10 @@ import (
 func TestUnmarshalDefaultConfig(t *testing.T) {
 	factory := NewFactory()
 	cfg := factory.CreateDefaultConfig()
-	assert.NoError(t, component.UnmarshalConfig(confmap.New(), cfg))
+
+	err := confmap.New().Unmarshal(cfg)
+	assert.NoError(t, err)
+
 	assert.Equal(t, factory.CreateDefaultConfig(), cfg)
 }
 
@@ -70,7 +72,7 @@ func TestUnmarshalConfig(t *testing.T) {
 		},
 		{
 			filename:    "invalid_verbosity_loglevel.yaml",
-			expectedErr: "1 error(s) decoding:\n\n* '' has invalid keys: loglevel",
+			expectedErr: "decoding failed due to the following error(s):\n\n'' has invalid keys: loglevel",
 		},
 	}
 
@@ -80,7 +82,7 @@ func TestUnmarshalConfig(t *testing.T) {
 			require.NoError(t, err)
 			factory := NewFactory()
 			cfg := factory.CreateDefaultConfig()
-			err = component.UnmarshalConfig(cm, cfg)
+			err = cm.Unmarshal(cfg)
 			if tt.expectedErr != "" {
 				assert.EqualError(t, err, tt.expectedErr)
 			} else {

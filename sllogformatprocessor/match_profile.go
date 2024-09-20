@@ -15,7 +15,7 @@
 package sllogformatprocessor // import "github.com/open-telemetry/opentelemetry-collector-contrib/processor/sllogformatprocessor"
 import (
 	"encoding/json"
-	"errors"
+	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
@@ -388,6 +388,7 @@ type ConfigResult struct {
 
 func (c *Config) MatchProfile(log *zap.Logger, rl plog.ResourceLogs, ils plog.ScopeLogs, lr plog.LogRecord) (*ConfigResult, *StreamTokenReq, error) {
 	var id, ret string
+	reasons := []string{}
 	for _, profile := range c.Profiles {
 		req := newStreamTokenReq()
 		gen := ConfigResult{}
@@ -399,16 +400,19 @@ func (c *Config) MatchProfile(log *zap.Logger, rl plog.ResourceLogs, ils plog.Sc
 		}
 		id, gen.ServiceGroup = parser.EvalElem(profile.ServiceGroup)
 		if gen.ServiceGroup == "" {
+			reasons = append(reasons, "service_group")
 			continue
 		}
 		req.Ids[id] = gen.ServiceGroup
 		id, gen.Host = parser.EvalElem(profile.Host)
 		if gen.Host == "" {
+			reasons = append(reasons, "host")
 			continue
 		}
 		req.Ids[id] = gen.Host
 		id, gen.Logbasename = parser.EvalElem(profile.Logbasename)
 		if gen.Logbasename == "" {
+			reasons = append(reasons, "logbasename")
 			continue
 		}
 		if lr.SeverityNumber() == plog.SeverityNumberUnspecified {
@@ -420,6 +424,7 @@ func (c *Config) MatchProfile(log *zap.Logger, rl plog.ResourceLogs, ils plog.Sc
 		if profile.Severity != nil {
 			_, sevText := parser.EvalElem(profile.Severity)
 			if sevText == "" {
+				reasons = append(reasons, "severity")
 				continue
 			}
 			sevText = strings.ToUpper(sevText)
@@ -447,6 +452,7 @@ func (c *Config) MatchProfile(log *zap.Logger, rl plog.ResourceLogs, ils plog.Sc
 		}
 		_, gen.Message = parser.EvalElem(profile.Message)
 		if gen.Message == "" {
+			reasons = append(reasons, "message")
 			continue
 		}
 		// FORMAT MESSAGE
@@ -477,8 +483,10 @@ func (c *Config) MatchProfile(log *zap.Logger, rl plog.ResourceLogs, ils plog.Sc
 				}
 			}
 		}
+		fmt.Printf("MSG bytes: %+v\n", []byte(gen.Message))
+		fmt.Printf("MSG string: %s\n", gen.Message)
 		gen.Format = profile.Format
 		return &gen, &req, nil
 	}
-	return nil, nil, errors.New("No matching profile for log record")
+	return nil, nil, fmt.Errorf("No matching profile for log record, failed to find %v", reasons)
 }
