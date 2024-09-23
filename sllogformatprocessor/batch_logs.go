@@ -101,9 +101,15 @@ func (bl *batchLogs) addToBatch(ld plog.Logs) {
 			ils.LogRecords().RemoveIf(func(lr plog.LogRecord) bool {
 				gen, req, err := bl.cfg.MatchProfile(bl.log, rl, ils, lr)
 				if err != nil {
-					bl.log.Error("Failed to match profile",
-						zap.String("err", err.Error()))
-					bl.dumpLogRecord(rl, ils, lr)
+					switch err {
+					case errEmptyLine:
+						bl.log.Warn("Skipping log record",
+							zap.String("err", err.Error()))
+					default:
+						bl.log.Error("Failed to match profile",
+							zap.String("err", err.Error()))
+						bl.dumpLogRecord(rl, ils, lr)
+					}
 					return true
 				}
 				reqBytes, err := json.Marshal(req)
