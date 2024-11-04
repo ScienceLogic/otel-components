@@ -27,6 +27,7 @@ import (
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/config/configtelemetry"
 	"go.opentelemetry.io/collector/pdata/plog"
+	"go.opentelemetry.io/otel/metric"
 )
 
 type loggingExporter struct {
@@ -112,7 +113,11 @@ func (s *loggingExporter) pushLogs(_ context.Context, ld plog.Logs) error {
 }
 
 func (s *loggingExporter) start(ctx context.Context, host component.Host) error {
-	client, err := s.cfg.ClientConfig.ToClient(ctx, host, component.TelemetrySettings{Logger: s.log})
+	settings := component.TelemetrySettings{
+		Logger:               s.log,
+		LeveledMeterProvider: func(level configtelemetry.Level) metric.MeterProvider { return nil },
+	}
+	client, err := s.cfg.ClientConfig.ToClient(ctx, host, settings)
 	if err != nil {
 		return err
 	}
