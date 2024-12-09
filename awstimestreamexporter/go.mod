@@ -8,9 +8,9 @@ require (
 	github.com/aws/aws-sdk-go-v2/config v1.27.11
 	github.com/aws/aws-sdk-go-v2/service/timestreamwrite v1.25.5
 	github.com/aws/smithy-go v1.20.2
-	github.com/stretchr/testify v1.9.0
+	github.com/stretchr/testify v1.10.0
 	go.opentelemetry.io/collector/component v0.109.0
-	go.opentelemetry.io/collector/config/configretry v1.15.0
+	go.opentelemetry.io/collector/config/configretry v1.21.0
 	go.opentelemetry.io/collector/confmap v1.15.0
 	go.opentelemetry.io/collector/exporter v0.109.0
 	go.opentelemetry.io/collector/pdata v1.15.0
